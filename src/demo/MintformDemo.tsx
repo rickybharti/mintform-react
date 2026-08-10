@@ -11,9 +11,11 @@ import {
 } from "../index";
 import "./MintformDemo.css";
 
-const INITIAL_MATERIAL = "#4dd93d";
-const INITIAL_FIELD_COLOR = "#978eff";
-const INITIAL_EDGE_ACCENT = "#43ad52";
+/* These are sRGB picker fallbacks. Until a picker is changed, the demo renders
+   the authored display-p3 sGHO preset without replacing its material tokens. */
+const CUSTOM_MATERIAL_FALLBACK = "#00dc21";
+const CUSTOM_FIELD_FALLBACK = "#978eff";
+const CUSTOM_EDGE_ACCENT_FALLBACK = "#00c13a";
 
 function clamp(value: number, minimum: number, maximum: number) {
   return Math.min(Math.max(value, minimum), maximum);
@@ -21,18 +23,20 @@ function clamp(value: number, minimum: number, maximum: number) {
 
 export default function MintformDemo() {
   const mintformRef = useRef<MintformHandle>(null);
-  const [materialColor, setMaterialColor] = useState(INITIAL_MATERIAL);
+  const [materialColor, setMaterialColor] = useState<string>();
   const [size, setSize] = useState(160);
   const [thickness, setThickness] = useState(16);
   const [detail, setDetail] = useState<MintformDetail>("high");
   const [showField, setShowField] = useState(true);
-  const [fieldColor, setFieldColor] = useState(INITIAL_FIELD_COLOR);
+  const [fieldColor, setFieldColor] = useState(CUSTOM_FIELD_FALLBACK);
   const [fieldReach, setFieldReach] = useState(0.5);
-  const [edgeAccent, setEdgeAccent] = useState(INITIAL_EDGE_ACCENT);
+  const [fieldCustomized, setFieldCustomized] = useState(false);
+  const [edgeAccent, setEdgeAccent] = useState(CUSTOM_EDGE_ACCENT_FALLBACK);
   const [accentEvery, setAccentEvery] = useState<2 | 3 | 4 | false>(2);
   const [edgeFinish, setEdgeFinish] = useState<
     NonNullable<MintformEdge["finish"]>
   >("reeded");
+  const [edgeCustomized, setEdgeCustomized] = useState(false);
   const [mark, setMark] = useState<MintformMark>({
     kind: "preset",
     name: "gho",
@@ -77,20 +81,27 @@ export default function MintformDemo() {
           <Mintform
             key={`${initialRotation}:${pitch}`}
             ref={mintformRef}
+            preset="sgho"
             size={size}
             thickness={thickness}
             detail={detail}
-            material={{ color: materialColor }}
+            material={materialColor ? { color: materialColor } : undefined}
             lowerField={
               showField
-                ? { color: fieldColor, reach: fieldReach, softness: 0.3 }
+                ? fieldCustomized
+                  ? { color: fieldColor, reach: fieldReach, softness: 0.3 }
+                  : undefined
                 : false
             }
-            edge={{
-              accentColor: edgeAccent,
-              accentEvery,
-              finish: edgeFinish,
-            }}
+            edge={
+              edgeCustomized
+                ? {
+                    accentColor: edgeAccent,
+                    accentEvery,
+                    finish: edgeFinish,
+                  }
+                : undefined
+            }
             mark={mark}
             faces={backMark ? { back: { mark: backMark } } : undefined}
             shadow={{ intensity: shadowIntensity }}
@@ -123,12 +134,13 @@ export default function MintformDemo() {
           Material colour
           <input
             type="color"
-            value={materialColor}
+            value={materialColor ?? CUSTOM_MATERIAL_FALLBACK}
             onChange={(event) => setMaterialColor(event.target.value)}
           />
           <span className="component-demo__control-hint">
-            One colour derives the cap, rim, highlight, shadow and primary
-            ridge material.
+            The authored sGHO material is active until this is changed. Then one
+            colour derives the cap, rim, highlight, shadow and primary ridge
+            material.
           </span>
         </label>
         <label>
@@ -184,7 +196,10 @@ export default function MintformDemo() {
             type="color"
             value={fieldColor}
             disabled={!showField}
-            onChange={(event) => setFieldColor(event.target.value)}
+            onChange={(event) => {
+              setFieldColor(event.target.value);
+              setFieldCustomized(true);
+            }}
           />
         </label>
         <label>
@@ -195,7 +210,10 @@ export default function MintformDemo() {
             max="100"
             value={fieldReach * 100}
             disabled={!showField}
-            onChange={(event) => setFieldReach(Number(event.target.value) / 100)}
+            onChange={(event) => {
+              setFieldReach(Number(event.target.value) / 100);
+              setFieldCustomized(true);
+            }}
           />
         </label>
         <label>
@@ -203,20 +221,24 @@ export default function MintformDemo() {
           <input
             type="color"
             value={edgeAccent}
-            onChange={(event) => setEdgeAccent(event.target.value)}
+            onChange={(event) => {
+              setEdgeAccent(event.target.value);
+              setEdgeCustomized(true);
+            }}
           />
         </label>
         <label>
           Accent cadence
           <select
             value={accentEvery === false ? "none" : accentEvery}
-            onChange={(event) =>
+            onChange={(event) => {
               setAccentEvery(
                 event.target.value === "none"
                   ? false
                   : (Number(event.target.value) as 2 | 3 | 4),
-              )
-            }
+              );
+              setEdgeCustomized(true);
+            }}
           >
             <option value="2">Every 2nd ridge</option>
             <option value="3">Every 3rd ridge</option>
@@ -228,11 +250,12 @@ export default function MintformDemo() {
           Edge finish
           <select
             value={edgeFinish}
-            onChange={(event) =>
+            onChange={(event) => {
               setEdgeFinish(
                 event.target.value as NonNullable<MintformEdge["finish"]>,
-              )
-            }
+              );
+              setEdgeCustomized(true);
+            }}
           >
             <option value="reeded">Reeded — alternate ridge bands</option>
             <option value="uniform">Uniform — one continuous ridge tone</option>

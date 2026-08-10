@@ -1223,7 +1223,7 @@ export const Mintform = forwardRef<MintformHandle, MintformProps>(
       "--mintform-surface-inset": `${resolvedFace.surfaceInset * sizeScale}px`,
       "--mintform-field-transparent-at": `${resolvedField.transparentAt}%`,
       "--mintform-field-opaque-at": `${resolvedField.opaqueAt}%`,
-      "--mintform-field-overlay": `color-mix(in oklab, ${resolvedField.color} 82%, transparent)`,
+      "--mintform-field-overlay": resolvedField.color,
       "--mintform-shadow-color": resolvedShadow.color,
       "--mintform-shadow-bottom": `${resolvedShadow.bottom}px`,
       "--mintform-shadow-blur": `${resolvedShadow.blur}px`,
@@ -1249,7 +1249,7 @@ export const Mintform = forwardRef<MintformHandle, MintformProps>(
         : 0;
       const fieldOverlay =
         fieldStrength > 0
-          ? `color-mix(in oklab, ${resolvedField.color} ${Math.round(fieldStrength * 82)}%, transparent)`
+          ? `color-mix(in oklab, ${resolvedField.color} ${Math.round(fieldStrength * 100)}%, transparent)`
           : "transparent";
 
       return (

@@ -1,5 +1,6 @@
 /* The body and shadow are the only layers that animate. Lower-field material
-   belongs to the faces and ridge mesh, so it needs no independent compositor. */
+   belongs to the faces and ridge mesh, so it needs no independently animated
+   plane. */
 .mintform__body,
 .mintform__shadow-track {
   will-change: auto;
@@ -7,7 +8,9 @@
 
 .mintform__face-field {
   position: absolute;
-  z-index: 1;
+  /* Above the inset bevel so the whole lower cap, including the recessed
+     connection between outer rim and front surface, shares one material tint. */
+  z-index: 2;
   inset: 0;
   border-radius: inherit;
   background-image: linear-gradient(
@@ -15,21 +18,20 @@
     transparent var(--mintform-field-transparent-at),
     var(--mintform-field-overlay) var(--mintform-field-opaque-at)
   );
+  /* Colourize the face material instead of painting over it. The field is a
+     child of each transformed cap, so this preserves the cap's local lighting
+     without returning to the old screen-space projection. */
+  mix-blend-mode: color;
   pointer-events: none;
 }
 
-/* The surface shade is an intrinsic material detail and the mark must stay
-   crisp above the lower field; neither is a separate blended compositor. */
-.mintform__face-surface::before {
-  z-index: 2;
-}
-
+/* The mark remains crisp above the lower-field material. */
 .mintform__logo {
   z-index: 3;
 }
 
-/* Every ridge already has its own physical plane. A static, angle-derived
-   overlay makes the lower material move with that plane instead of projecting
+/* Every ridge already has its own physical plane. Colourize that ridge's own
+   material gradient so its local light/dark detail survives, without projecting
    a clipped screen-space layer across the entire coin. */
 .mintform__edge-slice {
   background:
@@ -43,6 +45,7 @@
       var(--mintform-face-color) 32% 68%,
       color-mix(in oklab, var(--mintform-face-color), #fff 10%)
     );
+  background-blend-mode: color;
 }
 
 .mintform[data-mintform-animating="true"] .mintform__body {
