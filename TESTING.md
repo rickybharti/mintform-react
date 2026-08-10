@@ -8,7 +8,7 @@
 | `npm run check` | Strict TypeScript component and demo types. |
 | `npm test` | Geometry/material property tests. |
 | `npm run test:package` | Expected npm tarball files only. |
-| `npm run test:consumer` | A clean React/Vite install of the packed tarball. |
+| `npm run test:consumer` | Clean React 18.2 and React 19 Vite installs of the packed tarball. |
 | `npm run test:release` | The complete package release gate. |
 
 ## Visual matrix
@@ -23,6 +23,12 @@ through a press spin and while using an X-axis pitch arc.
 - Front/back custom marks and SVG gradient IDs.
 - Reduced motion, keyboard activation, focus ring, drag/flick, and offscreen
   pause/resume.
+
+`npm run test:consumer` deliberately tests the declared React peer floor
+(18.2.0) rather than only the development React version. It type-checks an ESM
+import with the CSS subpath and also loads the CommonJS root export. Its fixture
+includes every public prop group, custom back-mark render context, wrapper and
+button attributes, plus all expert rendering groups.
 
 ## Performance harness
 

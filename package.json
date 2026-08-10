@@ -12,7 +12,7 @@
     "animation",
     "design-system"
   ],
-  "license": "UNLICENSED",
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/rickybharti/mintform-react.git"
@@ -36,7 +36,16 @@
   },
   "files": [
     "dist",
-    "README.md"
+    "README.md",
+    "API.md",
+    "STACK.md",
+    "TESTING.md",
+    "CONTRIBUTING.md",
+    "SECURITY.md",
+    "PUBLISHING-CHECKLIST.md",
+    "CHANGELOG.md",
+    "LICENSE",
+    "NOTICE"
   ],
   "sideEffects": [
     "**/*.css"
@@ -59,7 +68,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:package": "node scripts/verify-package.mjs",
-    "test:consumer": "node scripts/verify-consumer.mjs",
+    "test:consumer": "node scripts/verify-consumer.mjs 18 && node scripts/verify-consumer.mjs 19",
     "test:all": "npm run check && npm run test && npm run build && npm run test:package",
     "test:release": "npm run test:all && npm run test:consumer",
     "prepack": "npm run test:all"

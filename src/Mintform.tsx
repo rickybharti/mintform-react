@@ -168,15 +168,21 @@ export type MintformHandle = {
   reset: () => void;
 };
 
+type MintformDataAttributes = {
+  [attribute: `data-${string}`]: string | number | undefined;
+};
+
 export type MintformRootProps = Omit<
   ComponentPropsWithoutRef<"div">,
   "children" | "className" | "style"
->;
+> &
+  MintformDataAttributes;
 
 export type MintformButtonProps = Omit<
   ComponentPropsWithoutRef<"button">,
   "children" | "className" | "style" | "type"
->;
+> &
+  MintformDataAttributes;
 
 export type MintformProps = {
   preset?: MintformPreset;

@@ -57,11 +57,16 @@ rebuilding the geometry.
 
 ### `mintform__face-field` and lower-ridge material
 
-The sGHO treatment is ordinary material paint, not a blend-mode compositor.
-Each cap gets the same local vertical fade, clipped by its existing circular
-face. Each ridge receives a derived strength based on whether its physical
-ring position is near the token's bottom. The body transform carries all of
-those surfaces together, avoiding a dynamic SVG clip or screen-space overlay.
+The sGHO treatment is local material paint, never a separately transformed
+screen-space field. Each cap gets the same local vertical fade, clipped by its
+existing circular face. Its leaf-level `mix-blend-mode: color` preserves the
+surface's luminance, including the inset bevel between the cap and outer rim.
+Each ridge receives a derived strength based on whether its physical ring
+position is near the token's bottom; its two background layers are combined
+with `background-blend-mode: color` so ridge highlights and shadows remain
+visible. These blend layers have no 3D descendants—the shared `mintform__body`
+still owns the transform—so the field stays attached to its cap or ridge rather
+than flattening the coin or leaking outside the mesh.
 
 ### Shadow and hit area
 

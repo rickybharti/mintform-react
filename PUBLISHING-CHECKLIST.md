@@ -21,23 +21,27 @@ changing `private: true` or publishing.
 
 - [x] `Mintform` is the only root export and CSS has a stable subpath export.
 - [x] React 18.2+ and React 19 peer ranges are declared.
-- [ ] Define the supported browser floor for CSS 3D, `color-mix()`, Pointer
-  Events, and `IntersectionObserver`.
+- [x] Document the supported browser floor: modern evergreen browsers with CSS
+  3D, CSS Color 4 `color-mix()`, blend modes, Pointer Events, and
+  `IntersectionObserver` (CSS `color-mix()` has cross-browser availability
+  since May 2023).
 - [ ] Capture deterministic visual regression frames at 0°, 45°, 90°, 135°,
   and 180° for no field, lower field, custom material, and custom mark cases.
 - [ ] Test the agreed browser floor and one mid-tier mobile device.
 
 ## Legal and brand review
 
-- [ ] Choose an actual license and replace `UNLICENSED` before public release.
-- [ ] Confirm rights to distribute every included name, logo, and preset; remove
-  or make examples-only anything not cleared.
-- [ ] Add copyright/attribution notices if the final license requires them.
+- [x] MIT license selected and included in the tarball.
+- [x] Package owner confirmed rights for the bundled Aave and GHO reference
+  marks; [NOTICE](./NOTICE) clarifies that their trademarks are not licensed by
+  the MIT grant.
+- [x] Add a copyright and trademark notice in the tarball.
 
 ## Supply chain and CI
 
 - [x] CI runs `npm ci` and the release gate on Node 20 and 22.
-- [ ] Protect the default branch and require the CI check before merge.
+- [x] Protect `main`: require Node 20 and Node 22 checks and reject force
+  pushes/deletion. Reviews remain optional for the owner's direct-main flow.
 - [ ] Enable npm two-factor authentication for publishing and settings changes.
 - [ ] Configure npm trusted publishing with GitHub Actions after the release
   repository and package visibility are final.

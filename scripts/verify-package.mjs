@@ -43,6 +43,15 @@ try {
     "dist/mintform.css",
     "package.json",
     "README.md",
+    "API.md",
+    "STACK.md",
+    "TESTING.md",
+    "CONTRIBUTING.md",
+    "SECURITY.md",
+    "PUBLISHING-CHECKLIST.md",
+    "CHANGELOG.md",
+    "LICENSE",
+    "NOTICE",
   ]) {
     assert(
       packedFiles.has(requiredFile),

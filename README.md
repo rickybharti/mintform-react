@@ -4,7 +4,8 @@ A tactile, customizable CSS 3D token component for React. Mintform keeps its
 cap, sidewall, ridge, lower-field, and animation geometry internal while
 exposing a compact art-direction API.
 
-> Status: private, tested, and not yet published to npm.
+> Status: MIT-licensed, tested, and deliberately blocked from npm publication
+> until the owner completes the release checklist.
 
 ## Install
 
@@ -39,15 +40,26 @@ export function Token() {
 
 Mintform is a **React component for the browser**. It supports React 18.2+ and
 React 19 as peer dependencies. Rendering and motion use DOM, CSS 3D transforms,
-`color-mix()`, Pointer Events, `requestAnimationFrame`, and
+`color-mix()`, blend modes, Pointer Events, `requestAnimationFrame`, and
 `IntersectionObserver`; it is not a server-rendered, React Native, Vue, Svelte,
 or framework-agnostic component today.
 
 The component does not add runtime dependencies. React owns rendering; the
 browser compositor handles transforms, shading, and CSS animation surfaces.
 
+## Browser support
+
+Mintform targets modern evergreen desktop and mobile browsers with CSS 3D,
+`color-mix()`, `mix-blend-mode`, Pointer Events, `requestAnimationFrame`, and
+`IntersectionObserver`. In particular, it needs the CSS Color 4 features that
+MDN lists as broadly available since May 2023; it has no legacy fallback for
+those paint features. Test your own supported browser matrix before shipping a
+branded token into production.
+
 ## API at a glance
 
+- `preset` selects the GHO, sGHO (GHO plus lower colour field), or Aave
+  reference material.
 - `material.color` derives the cap, rim, highlights, primary ridge, and shadow.
 - `lowerField` paints a second material into both caps and the physical ridge
   mesh—never as a background layer.
@@ -58,7 +70,7 @@ browser compositor handles transforms, shading, and CSS animation surfaces.
 - `ref` exposes `spin()` and `reset()` for deliberate imperative control.
 
 Read [API.md](./API.md) for the full contract and [STACK.md](./STACK.md) for
-the 3D layer model.
+the 3D layer model. Both are included in the published tarball.
 
 ## Development
 
@@ -71,7 +83,9 @@ npm run test:release # plus a clean installed-package React/Vite consumer
 ```
 
 `npm run test:package` inspects `npm pack --dry-run` and permits only the
-explicit distribution files. CI runs the full release gate on Node 20 and 22.
+explicit distribution files. `npm run test:consumer` installs that tarball into
+fresh React 18.2 and React 19 Vite consumers. CI runs the full release gate on
+Node 20 and 22.
 
 ## Publishing
 
@@ -81,4 +95,11 @@ requirements are approved. See [PUBLISHING-CHECKLIST.md](./PUBLISHING-CHECKLIST.
 ## Contributing and security
 
 See [CONTRIBUTING.md](./CONTRIBUTING.md) and [SECURITY.md](./SECURITY.md).
-This repository is `UNLICENSED` until its owner selects a distribution license.
+
+## License and marks
+
+Mintform's source code is licensed under [MIT](./LICENSE). The `aave` and
+`gho` reference marks remain trademarks of their respective owners; see
+[NOTICE](./NOTICE). The package owner has confirmed the rights used for these
+included reference presets. Downstream users must confirm their own rights
+before distributing branded marks.
