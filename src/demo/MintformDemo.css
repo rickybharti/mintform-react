@@ -1,0 +1,33 @@
+.mintform-demo__spin {
+  min-width: 8rem;
+  min-height: 2.75rem;
+  margin-top: -0.5rem;
+  padding: 0.7rem 1rem;
+  border: 1px solid #201c3d;
+  border-radius: 999px;
+  background: #201c3d;
+  color: #fff;
+  cursor: pointer;
+  transition: transform 150ms ease, background-color 150ms ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .mintform-demo__spin:hover {
+    background: #332a72;
+  }
+}
+
+.mintform-demo__spin:active {
+  transform: scale(0.97);
+}
+
+.mintform-demo__spin:focus-visible {
+  outline: 3px solid #6d61ec;
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mintform-demo__spin {
+    transition: none;
+  }
+}

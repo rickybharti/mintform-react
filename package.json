@@ -1,0 +1,83 @@
+{
+  "name": "@rickybharti/mintform",
+  "private": true,
+  "version": "0.1.0",
+  "description": "A tactile, customizable CSS 3D token component for React.",
+  "keywords": [
+    "react",
+    "react-component",
+    "css-3d",
+    "coin",
+    "token",
+    "animation",
+    "design-system"
+  ],
+  "license": "UNLICENSED",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rickybharti/mintform-react.git"
+  },
+  "bugs": {
+    "url": "https://github.com/rickybharti/mintform-react/issues"
+  },
+  "homepage": "https://github.com/rickybharti/mintform-react#readme",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./styles.css": "./dist/mintform.css",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "npm run build:library && npm run build:types",
+    "build:library": "vite build",
+    "build:types": "tsc -p tsconfig.build.json",
+    "build:demo": "vite build --mode demo",
+    "preview": "vite preview",
+    "preview:demo": "vite preview --outDir dist-demo",
+    "check": "tsc --noEmit -p tsconfig.json",
+    "lint": "biome lint .",
+    "format:check": "biome format .",
+    "check:style": "biome check .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:package": "node scripts/verify-package.mjs",
+    "test:consumer": "node scripts/verify-consumer.mjs",
+    "test:all": "npm run check && npm run test && npm run build && npm run test:package",
+    "test:release": "npm run test:all && npm run test:consumer",
+    "prepack": "npm run test:all"
+  },
+  "peerDependencies": {
+    "react": "^18.2.0 || ^19.0.0",
+    "react-dom": "^18.2.0 || ^19.0.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.4.7",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
+    "@vitejs/plugin-react": "^5.2.0",
+    "fast-check": "^4.5.3",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "typescript": "^5.9.3",
+    "vite": "^7.3.6",
+    "vitest": "^4.0.18"
+  }
+}

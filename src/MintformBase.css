@@ -1,0 +1,249 @@
+/*
+ * Mintform's sealed CSS 3D geometry. This is intentionally independent from
+ * the preserved reference stylesheet: Mintform exposes only this
+ * namespace to package consumers.
+ */
+.mintform {
+  --mintform-size-scale: calc(var(--mintform-size) / 160px);
+  --mintform-half-thickness: calc(var(--mintform-thickness) / 2);
+  position: relative;
+  width: var(--mintform-size);
+  height: var(--mintform-size);
+  flex: 0 0 var(--mintform-size);
+  isolation: isolate;
+}
+
+.mintform__body {
+  --mintform-face-base: color-mix(
+    in oklab,
+    var(--mintform-material-base-raw),
+    var(--mintform-material-shadow-raw)
+      calc(var(--mintform-face-shade, 0) * 100%)
+  );
+  --mintform-face-mid: color-mix(
+    in oklab,
+    var(--mintform-material-mid-raw),
+    var(--mintform-material-shadow-raw)
+      calc(var(--mintform-face-shade, 0) * 100%)
+  );
+  --mintform-face-shadow: color-mix(
+    in oklab,
+    var(--mintform-material-shadow-raw),
+    #000 calc(var(--mintform-face-shade, 0) * 30%)
+  );
+  --mintform-face-highlight: color-mix(
+    in oklab,
+    var(--mintform-material-highlight-raw),
+    var(--mintform-material-base-raw) calc(var(--mintform-face-shade, 0) * 100%)
+  );
+  --mintform-face-depth-highlight: color-mix(
+    in oklab,
+    var(--mintform-material-depth-highlight-raw),
+    var(--mintform-material-shadow-raw)
+      calc(var(--mintform-face-shade, 0) * 100%)
+  );
+  --mintform-material-base: var(--mintform-face-base);
+  --mintform-material-mid: var(--mintform-face-mid);
+  --mintform-material-shadow: var(--mintform-face-shadow);
+  --mintform-material-highlight: var(--mintform-face-highlight);
+  --mintform-material-depth-highlight: var(--mintform-face-depth-highlight);
+  position: absolute;
+  width: var(--mintform-size);
+  height: var(--mintform-size);
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+.mintform__face {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: 50%;
+}
+
+.mintform__face--front {
+  transform: translateZ(var(--mintform-half-thickness));
+}
+
+.mintform__face--back {
+  transform: rotateY(180deg) translateZ(var(--mintform-half-thickness));
+}
+
+/* Structural depth markers retained from the visual reference. They have no
+   painted area but keep the cap ordering explicit inside the 3D body. */
+.mintform__face-inner--front {
+  transform: rotateY(180deg)
+    translateZ(calc(var(--mintform-half-thickness) * -1));
+}
+
+.mintform__face-inner--back {
+  background-color: #fff;
+  transform: translateZ(calc(var(--mintform-half-thickness) * -1));
+}
+
+.mintform__face-outer,
+.mintform__face-rim,
+.mintform__face-inner-ring,
+.mintform__face-surface {
+  position: absolute;
+  border-radius: inherit;
+}
+
+.mintform__face-outer {
+  inset: 0;
+  background-image: var(--mintform-face-outer-gradient);
+}
+
+.mintform__face-rim {
+  inset: var(--mintform-rim-inset);
+  background-image: var(--mintform-face-rim-gradient);
+}
+
+.mintform__face-inner-ring {
+  inset: var(--mintform-inner-ring-inset);
+  background-image: var(--mintform-face-inner-gradient);
+}
+
+.mintform__face-surface {
+  inset: var(--mintform-surface-inset);
+  background-image: var(--mintform-face-surface-gradient);
+}
+
+.mintform__face-surface::before {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  border-radius: inherit;
+}
+
+.mintform__face--front .mintform__face-surface::before {
+  box-shadow:
+    inset calc(var(--mintform-shadow-x, 0px) * -2) 0 var(--mintform-face-shadow),
+    inset calc(var(--mintform-shadow-x, 0px) * -2) 0
+    calc(4px * var(--mintform-size-scale)) rgb(0 0 0 / 80%);
+}
+
+.mintform__face--back .mintform__face-surface::before {
+  box-shadow:
+    inset calc(var(--mintform-shadow-x, 0px) * 2) 0 var(--mintform-face-shadow),
+    inset calc(var(--mintform-shadow-x, 0px) * 2) 0
+    calc(4px * var(--mintform-size-scale)) rgb(0 0 0 / 80%);
+}
+
+.mintform__logo {
+  position: absolute;
+  inset: 0;
+  width: var(--mintform-size);
+  height: var(--mintform-size);
+  color: color-mix(
+    in oklab,
+    var(--mintform-logo-color),
+    var(--mintform-material-shadow-raw)
+      calc(var(--mintform-face-shade, 0) * 25%)
+  );
+  clip-path: circle(var(--mintform-logo-clip-radius) at center);
+  transform: var(--mintform-logo-transform, none);
+  transform-origin: center;
+}
+
+.mintform__logo > * {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.mintform__logo circle,
+.mintform__logo path {
+  fill: currentColor;
+}
+
+.mintform__edge-shell {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+}
+
+.mintform__edge-slice {
+  --mintform-slice-color: var(--mintform-edge-primary);
+  --mintform-face-color: color-mix(
+    in oklab,
+    var(--mintform-slice-color),
+    var(--mintform-material-shadow-raw)
+      calc(var(--mintform-edge-shade, 0) * 100%)
+  );
+  position: absolute;
+  top: calc(50% - var(--mintform-half-thickness));
+  left: calc(50% - var(--mintform-edge-panel-width) / 2);
+  width: var(--mintform-edge-panel-width);
+  height: var(--mintform-thickness);
+  background: linear-gradient(
+    90deg,
+    color-mix(in oklab, var(--mintform-face-color), #000 12%),
+    var(--mintform-face-color) 32% 68%,
+    color-mix(in oklab, var(--mintform-face-color), #fff 10%)
+  );
+  transform: rotateZ(
+      calc(var(--mintform-slice-index) * 1turn / var(--mintform-segments))
+    )
+    translateY(calc(var(--mintform-edge-panel-radius) * -1)) rotateX(90deg);
+  backface-visibility: hidden;
+}
+
+.mintform__edge-slice[data-band="alternate"] {
+  --mintform-slice-color: var(--mintform-edge-alternate);
+}
+
+.mintform__edge-slice::before,
+.mintform__edge-slice::after {
+  content: none;
+}
+
+.mintform__shadow-track {
+  position: absolute;
+  right: 50%;
+  bottom: calc(var(--mintform-shadow-bottom) * -1 * var(--mintform-size-scale));
+  display: flex;
+  justify-content: center;
+  width: 75%;
+  height: 1px;
+  transform-origin: center;
+  will-change: transform, opacity;
+}
+
+.mintform__shadow {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: var(--mintform-shadow-color);
+  box-shadow: 0 0 var(--mintform-shadow-blur) var(--mintform-shadow-spread)
+    var(--mintform-shadow-color);
+}
+
+.mintform__hit-area {
+  position: absolute;
+  z-index: 100000;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mintform__hit-area:focus-visible {
+  outline: 2px solid var(--mintform-focus-ring, #fff);
+  outline-offset: 5px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mintform__body,
+  .mintform__shadow-track,
+  .mintform__hit-area {
+    transition: none;
+  }
+}
