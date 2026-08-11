@@ -4,15 +4,15 @@ A tactile, customizable CSS 3D token component for React. Mintform keeps its
 cap, sidewall, ridge, lower-field, and animation geometry internal while
 exposing a compact art-direction API.
 
-> Status: MIT-licensed and release-gated. `0.1.0-rc.0` is prepared as a public
-> prerelease under npm's `next` tag; it is not published yet.
+> Status: MIT-licensed public prerelease. `0.1.0-rc.0` is published under npm's
+> `next` tag.
 
 ## Install
 
 For the prerelease candidate:
 
 ```bash
-npm install @rickybharti/mintform@0.1.0-rc.0
+npm install @rickybharti/mintform@next
 ```
 
 After the stable release, install `@rickybharti/mintform` without a version.
