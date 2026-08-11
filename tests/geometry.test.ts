@@ -18,6 +18,8 @@ describe("Mintform geometry invariants", () => {
     expect(clamp(2, 0, 1)).toBe(1);
     expect(finite(Number.NaN, 16)).toBe(16);
     expect(finite(Number.POSITIVE_INFINITY, 16)).toBe(16);
+    expect(finite(Number.NEGATIVE_INFINITY, 16)).toBe(16);
+    expect(finite(undefined, 16)).toBe(16);
   });
 
   it("keeps projected normals unit-length and lower-ridge material strengths safe", () => {
@@ -53,6 +55,36 @@ describe("Mintform geometry invariants", () => {
   it("keeps the top ridges clear and fully tints the physical bottom", () => {
     expect(ridgeFieldStrength(0, 120, 50, 80)).toBe(0);
     expect(ridgeFieldStrength(60, 120, 50, 80)).toBe(1);
+  });
+
+  it("keeps camera normal and ridge material placement stable through full turns", () => {
+    fc.assert(
+      fc.property(
+        fc.double({ min: -720, max: 720, noNaN: true }),
+        fc.double({ min: -45, max: 45, noNaN: true }),
+        fc.integer({ min: 24, max: 240 }),
+        fc.integer({ min: 0, max: 239 }),
+        fc.double({ min: 0, max: 90, noNaN: true }),
+        fc.double({ min: 0, max: 100, noNaN: true }),
+        (yaw, pitch, segments, index, start, end) => {
+          const normal = projectCoinNormal(yaw, pitch);
+          const nextTurnNormal = projectCoinNormal(yaw + 360, pitch);
+          const oppositeRidge = ridgeFieldStrength(
+            index + segments,
+            segments,
+            start,
+            end,
+          );
+          const ridge = ridgeFieldStrength(index, segments, start, end);
+
+          expect(nextTurnNormal.x).toBeCloseTo(normal.x, 10);
+          expect(nextTurnNormal.y).toBeCloseTo(normal.y, 10);
+          expect(nextTurnNormal.z).toBeCloseTo(normal.z, 10);
+          expect(oppositeRidge).toBeCloseTo(ridge, 10);
+        },
+      ),
+      { numRuns: 500 },
+    );
   });
 });
 

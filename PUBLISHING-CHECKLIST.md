@@ -2,20 +2,27 @@
 
 This is the release checklist for `@rickybharti/mintform`. It separates what is
 already enforced in this repository from decisions the owner must make before
-changing `private: true` or publishing.
+publishing.
 
 ## Package contract
 
 - [x] Scoped, lowercase package identity with `name` and semver `version`.
-- [x] ESM, CommonJS, bundled declarations, and explicit CSS export.
+- [x] ESM and CommonJS entry points each select their matching generated
+  declaration format; the explicit CSS export includes side-effect-only type
+  markers.
 - [x] React and React DOM are peer dependencies and externalized from the
   library bundle.
 - [x] `files` limits the tarball; package inspection rejects unexpected `dist`
   artifacts.
 - [x] A packed tarball is installed and TypeScript-checked in a clean React/Vite
   consumer.
-- [ ] Confirm that `@rickybharti/mintform` is available in the intended npm
-  account and choose public or private distribution.
+- [x] Packed React 18.2 and React 19 consumers type-check with NodeNext in both
+  ESM and CommonJS modes, then load both root module formats at runtime.
+- [x] `publint` and `attw` audit the packed Node package boundary in the
+  release gate; the browser-only CSS asset is verified through the Vite
+  consumer instead.
+- [x] `@rickybharti/mintform` has no existing public registry release and the
+  owner selected public distribution.
 
 ## API and compatibility
 
@@ -42,20 +49,24 @@ changing `private: true` or publishing.
 - [x] CI runs `npm ci` and the release gate on Node 20 and 22.
 - [x] Protect `main`: require Node 20 and Node 22 checks and reject force
   pushes/deletion. Reviews remain optional for the owner's direct-main flow.
-- [ ] Enable npm two-factor authentication for publishing and settings changes.
+- [x] npm two-factor authentication is enabled for authorization and writes.
 - [ ] Configure npm trusted publishing with GitHub Actions after the release
   repository and package visibility are final.
 - [ ] If public provenance is desired, make both the repository and package
   public; npm does not generate provenance for private repositories.
-- [ ] Keep publishing disabled locally; publish from reviewed CI only.
+- [ ] Configure trusted publishing before the stable `0.1.0` release. The
+  reviewed prerelease may be published locally with 2FA after explicit owner
+  confirmation.
 
 ## First release
 
-- [ ] Review `CHANGELOG.md` and choose the correct initial semver version.
-- [ ] Run `npm ci`, `npm run test:release`, and `npm pack --dry-run` from a
-  clean checkout.
-- [ ] Inspect the generated tarball and install it in a blank consumer.
-- [ ] Change `private` in the reviewed release commit only.
+- [x] Review `CHANGELOG.md` and select `0.1.0-rc.0` as the public prerelease.
+- [x] Run an isolated `npm ci`, `npm run test:release`, and `npm pack --dry-run`
+  for the candidate.
+- [x] Inspect the generated tarball and install it in blank React 18.2 and 19
+  consumers.
+- [x] Set `private: false` and `publishConfig` to public `next` in the reviewed
+  prerelease commit.
 - [ ] Publish with the intended npm access level, tag the Git commit, and
   confirm the package page installs correctly.
 

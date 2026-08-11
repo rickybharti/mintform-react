@@ -99,8 +99,8 @@ try {
           esModuleInterop: true,
           allowSyntheticDefaultImports: true,
           strict: true,
-          module: "ESNext",
-          moduleResolution: "Bundler",
+          module: "NodeNext",
+          moduleResolution: "NodeNext",
           resolveJsonModule: true,
           isolatedModules: true,
           noEmit: true,
@@ -211,12 +211,37 @@ try {
     ].join("\n"),
   );
   await writeFile(
+    join(consumerDirectory, "src/cjs-types.cts"),
+    [
+      'import MintformPackage = require("@rickybharti/mintform");',
+      "",
+      "const component: typeof MintformPackage.Mintform = MintformPackage.Mintform;",
+      "const props = {",
+      '  preset: "gho",',
+      '  motion: { idle: "none" },',
+      "} satisfies MintformPackage.MintformProps;",
+      "",
+      "void [component, props];",
+      "",
+    ].join("\n"),
+  );
+  await writeFile(
     join(consumerDirectory, "smoke.cjs"),
     [
       'const assert = require("node:assert/strict");',
       'const { Mintform } = require("@rickybharti/mintform");',
       "",
       'assert.ok(Mintform, "The CommonJS Mintform export should load.");',
+      "",
+    ].join("\n"),
+  );
+  await writeFile(
+    join(consumerDirectory, "smoke.mjs"),
+    [
+      'import assert from "node:assert/strict";',
+      'import { Mintform } from "@rickybharti/mintform";',
+      "",
+      'assert.ok(Mintform, "The ESM Mintform export should load.");',
       "",
     ].join("\n"),
   );
@@ -234,6 +259,10 @@ try {
   );
   runNpm(["run", "build"], consumerDirectory);
   execFileSync(process.execPath, ["smoke.cjs"], {
+    cwd: consumerDirectory,
+    encoding: "utf8",
+  });
+  execFileSync(process.execPath, ["smoke.mjs"], {
     cwd: consumerDirectory,
     encoding: "utf8",
   });

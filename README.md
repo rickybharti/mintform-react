@@ -4,16 +4,18 @@ A tactile, customizable CSS 3D token component for React. Mintform keeps its
 cap, sidewall, ridge, lower-field, and animation geometry internal while
 exposing a compact art-direction API.
 
-> Status: MIT-licensed, tested, and deliberately blocked from npm publication
-> until the owner completes the release checklist.
+> Status: MIT-licensed and release-gated. `0.1.0-rc.0` is prepared as a public
+> prerelease under npm's `next` tag; it is not published yet.
 
 ## Install
 
-After publishing:
+For the prerelease candidate:
 
 ```bash
-npm install @rickybharti/mintform
+npm install @rickybharti/mintform@0.1.0-rc.0
 ```
+
+After the stable release, install `@rickybharti/mintform` without a version.
 
 ```tsx
 import { Mintform } from "@rickybharti/mintform";
@@ -79,18 +81,22 @@ npm ci
 npm run dev          # interactive playground
 npm run build:demo   # production playground and benchmark
 npm run test:all     # typecheck, property tests, build, package inspection
-npm run test:release # plus a clean installed-package React/Vite consumer
+npm run test:release # plus packed React consumers and ESM/CJS package audits
 ```
 
 `npm run test:package` inspects `npm pack --dry-run` and permits only the
 explicit distribution files. `npm run test:consumer` installs that tarball into
-fresh React 18.2 and React 19 Vite consumers. CI runs the full release gate on
+fresh React 18.2 and React 19 Vite consumers using NodeNext resolution in both
+module modes. `npm run test:types` additionally audits the packed ESM/CJS
+declaration boundary with publint and attw. CI runs the full release gate on
 Node 20 and 22.
 
 ## Publishing
 
-The package stays `private: true` until its legal, compatibility, and release
-requirements are approved. See [PUBLISHING-CHECKLIST.md](./PUBLISHING-CHECKLIST.md).
+The reviewed prerelease uses npm's public `next` tag. Its publish action stays
+separate from the release commit so the owner can confirm the exact package,
+version, and access immediately before publication. See
+[PUBLISHING-CHECKLIST.md](./PUBLISHING-CHECKLIST.md).
 
 ## Contributing and security
 

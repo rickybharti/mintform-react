@@ -8,7 +8,8 @@
 | `npm run check` | Strict TypeScript component and demo types. |
 | `npm test` | Geometry/material property tests. |
 | `npm run test:package` | Expected npm tarball files only. |
-| `npm run test:consumer` | Clean React 18.2 and React 19 Vite installs of the packed tarball. |
+| `npm run test:consumer` | Clean React 18.2 and React 19 NodeNext/Vite installs of the packed tarball. |
+| `npm run test:types` | Published ESM/CJS declarations and package exports with publint and attw. |
 | `npm run test:release` | The complete package release gate. |
 
 ## Visual matrix
@@ -25,10 +26,16 @@ through a press spin and while using an X-axis pitch arc.
   pause/resume.
 
 `npm run test:consumer` deliberately tests the declared React peer floor
-(18.2.0) rather than only the development React version. It type-checks an ESM
-import with the CSS subpath and also loads the CommonJS root export. Its fixture
+(18.2.0) rather than only the development React version. It type-checks ESM and
+CommonJS imports with NodeNext resolution, imports the CSS subpath through a
+real Vite consumer, and loads both root module formats at runtime. Its fixture
 includes every public prop group, custom back-mark render context, wrapper and
 button attributes, plus all expert rendering groups.
+
+`npm run test:types` excludes only `./styles.css` from attw because it is a
+browser bundler asset, not a Node-loadable JavaScript entry point. Its paired
+ESM/CJS CSS type markers and the installed Vite consumer above cover that
+subpath; attw audits the Node package boundary itself.
 
 ## Performance harness
 

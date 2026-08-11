@@ -28,19 +28,41 @@ try {
 
   assert.equal(
     manifest.private,
-    true,
-    "The pre-publish safety guard must stay on.",
+    false,
+    "The reviewed prerelease must be explicitly publishable.",
   );
   assert.equal(manifest.name, "@rickybharti/mintform");
-  assert.equal(manifest.exports["."].import, "./dist/index.js");
-  assert.equal(manifest.exports["."].require, "./dist/index.cjs");
-  assert.equal(manifest.exports["./styles.css"], "./dist/mintform.css");
+  assert.equal(manifest.publishConfig.access, "public");
+  assert.equal(manifest.publishConfig.tag, "next");
+  assert.equal(manifest.exports["."].import.types, "./dist/index.d.ts");
+  assert.equal(manifest.exports["."].import.default, "./dist/index.js");
+  assert.equal(manifest.exports["."].require.types, "./dist/index.d.cts");
+  assert.equal(manifest.exports["."].require.default, "./dist/index.cjs");
+  assert.equal(
+    manifest.exports["./styles.css"].import.types,
+    "./dist/mintform.css.d.ts",
+  );
+  assert.equal(
+    manifest.exports["./styles.css"].import.default,
+    "./dist/mintform.css",
+  );
+  assert.equal(
+    manifest.exports["./styles.css"].require.types,
+    "./dist/mintform.css.d.cts",
+  );
+  assert.equal(
+    manifest.exports["./styles.css"].require.default,
+    "./dist/mintform.css",
+  );
 
   for (const requiredFile of [
     "dist/index.js",
     "dist/index.cjs",
     "dist/index.d.ts",
+    "dist/index.d.cts",
     "dist/mintform.css",
+    "dist/mintform.css.d.ts",
+    "dist/mintform.css.d.cts",
     "package.json",
     "README.md",
     "API.md",
@@ -63,12 +85,10 @@ try {
     "dist/index.js",
     "dist/index.cjs",
     "dist/index.d.ts",
-    "dist/index.d.ts.map",
-    "dist/Mintform.d.ts",
-    "dist/Mintform.d.ts.map",
-    "dist/core/geometry.d.ts",
-    "dist/core/geometry.d.ts.map",
+    "dist/index.d.cts",
     "dist/mintform.css",
+    "dist/mintform.css.d.ts",
+    "dist/mintform.css.d.cts",
   ]);
 
   for (const leakedPath of packedFiles) {
