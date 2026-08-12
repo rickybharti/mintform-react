@@ -12,15 +12,43 @@ import "@rickybharti/mintform/styles.css";
 
 | Prop | Contract |
 | --- | --- |
-| `preset` | `"gho"` (default), `"sgho"`, or `"aave"`. `sgho` is the GHO material with its lower colour field enabled by default. |
+| `preset` | `"gho"` (default), `"sgho"`, or `"aave"`. Supplies the authored default palette and mark; `sgho` also enables its lower colour field by default. Passing `material` replaces the cap palette but retains the preset's other defaults. |
 | `size` | Diameter in CSS pixels. Defaults to `160`, clamps to `48`–`1024`. |
 | `thickness` | Physical cap-to-cap depth. Defaults to 10% of `size`, clamps to 4%–25% of `size`. |
 | `detail` | Ridge density: `"low"` (48), `"medium"` (80), or `"high"` (120, default). |
-| `material` | `{ color }`. One valid CSS colour derives the cap, rim, highlights, primary ridge, and default shadow. Hex colours receive a tuned HSL palette; other valid CSS colours use local `color-mix()` derivation. |
+| `material` | `{ color }`. One valid CSS colour derives the cap, rim, highlight, shadow, primary ridge, and alternating ridge palette. The ground shadow follows this material unless a lower field is enabled. Hex colours receive a tuned HSL palette; other valid CSS colours use local `color-mix()` derivation. `rendering.material.tokens` can replace any derived token. |
 | `lowerField` | `false`, or `{ color, reach?, softness? }`. It tints the physical lower caps and ridge mesh. `reach` clamps to 0.05–1 (default 0.5); `softness` clamps to 0.01–`reach` (default 0.3). Pass `false` to remove the sGHO field. |
 | `edge` | `{ accentColor?, accentEvery?, finish? }`. `accentEvery` is `2`, `3`, `4`, or `false`; `finish` is `"reeded"` (default) or `"uniform"`. This changes ridge paint only, never ridge geometry. |
 | `shadow` | `false`, or `{ intensity?, color? }`. Intensity clamps to 0–1; the default colour follows the lower field when enabled, otherwise the cap material. |
-| `lighting` | `"reference"` (default), `"studio"`, or `"dramatic"`. These are paint recipes, not additional render passes or lights. |
+| `lighting` | `"reference"` (default), `"studio"`, or `"dramatic"`. Mintform derives live face/ridge shade from the token's rotation and pitch. `reference` uses the reference angle-based recipe; `studio` and `dramatic` add increasingly strong directional shading. These are paint recipes, not additional render passes or physical lights. |
+
+## Material and lighting model
+
+The static material and moving shade are intentionally separate:
+
+1. `preset` provides an authored GHO, sGHO, or Aave palette when `material` is
+   omitted.
+2. `material.color` derives the full base palette when supplied.
+3. Rotation and pitch produce live face and ridge shade values, which CSS
+   `color-mix()` applies to the resolved palette.
+4. `lighting` selects the shade recipe; it does not replace the palette.
+5. `lowerField` adds a second supplied colour to the physical lower caps and
+   ridge mesh without replacing their lighting detail.
+
+For exact brand art direction, the face palette resolves as:
+
+```text
+preset palette or material.color derivation
+  -> rendering.material.tokens
+```
+
+`edge.accentColor` remains the focused override for alternating ridges, and
+`rendering.edge.baseColor` is the focused override for the primary ridge.
+
+`rendering.face.gradients` may replace the `outer`, `rim`, `innerRing`, or
+`surface` gradients. Build a custom gradient from `--mintform-material-*`
+variables when it should retain live shading; a literal-colour gradient is an
+intentional fixed-paint override.
 
 ## Marks and faces
 
