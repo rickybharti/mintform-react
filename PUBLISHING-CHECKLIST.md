@@ -54,14 +54,13 @@ publishing.
   consumer matrix against one tarball.
 - [x] A tag-triggered `publish.yml` reruns the complete release gate and uses
   npm trusted publishing without a stored write token.
-- [ ] Protect `main`: require Node 20, Node 22, and the four-package-manager
-  check, and reject force pushes/deletion. The live rule already covers Node
-  20/22 and rejects force pushes/deletion; add the new matrix after its first
-  GitHub Actions run. Reviews remain optional for the owner's direct-main flow.
+- [x] Protect `main`: require Node 20, Node 22, and the four-package-manager
+  check with strict up-to-date validation, and reject force pushes/deletion.
+  Reviews remain optional for the owner's direct-main flow.
 - [x] npm two-factor authentication is enabled for authorization and writes.
 - [ ] Configure npm trusted publishing with GitHub Actions after the release
   repository and package visibility are final.
-- [ ] If public provenance is desired, make both the repository and package
+- [x] If public provenance is desired, make both the repository and package
   public; npm does not generate provenance for private repositories.
 - [ ] Configure trusted publishing before the stable `0.1.0` release. The
   reviewed prerelease may be published locally with 2FA after explicit owner
@@ -86,9 +85,9 @@ publishing.
 - [x] Document bare npm, pnpm, Yarn, and Bun install commands for the stable
   channel.
 - [x] Run `npm run test:release` against the exact `0.1.0` tarball.
-- [ ] Make the repository public and configure npm trusted publishing if the
-  stable package should carry public provenance.
-- [ ] Confirm the release commit passes every required GitHub Actions check.
+- [x] Make the repository public so the stable package can carry provenance.
+- [ ] Connect `publish.yml` as the npm trusted publisher for the package.
+- [x] Confirm the release commit passes every required GitHub Actions check.
 - [ ] Tag the reviewed release commit as `v0.1.0`.
 - [ ] Publish `@rickybharti/mintform@0.1.0` publicly and confirm npm's `latest`
   tag resolves to it.
