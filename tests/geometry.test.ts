@@ -1,12 +1,13 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
+import { resolveEdgeFinish, resolveEdgeSegments } from "../src/core/appearance";
 import {
   clamp,
   finite,
   projectCoinNormal,
   ridgeFieldStrength,
 } from "../src/core/geometry";
-import { deriveMaterialTokens } from "../src/Mintform";
+import { deriveMaterialTokens } from "../src/core/material";
 
 function hexColor(value: number) {
   return `#${value.toString(16).padStart(6, "0")}`;
@@ -85,6 +86,24 @@ describe("Mintform geometry invariants", () => {
       ),
       { numRuns: 500 },
     );
+  });
+
+  it("keeps visual ridge density stable across sizes and honors explicit overrides", () => {
+    expect(resolveEdgeSegments(160, "low")).toBe(48);
+    expect(resolveEdgeSegments(160, "medium")).toBe(80);
+    expect(resolveEdgeSegments(160, "high")).toBe(120);
+    expect(resolveEdgeSegments(320, "high")).toBe(240);
+    expect(resolveEdgeSegments(48, "low")).toBe(24);
+    expect(resolveEdgeSegments(1024, "high")).toBe(240);
+    expect(resolveEdgeSegments(320, "high", 64)).toBe(64);
+    expect(resolveEdgeSegments(320, "high", Number.NaN)).toBe(240);
+  });
+
+  it("resolves appearance defaults without overriding an explicit edge finish", () => {
+    expect(resolveEdgeFinish("sculpted")).toBe("reeded");
+    expect(resolveEdgeFinish("clean")).toBe("smooth");
+    expect(resolveEdgeFinish("clean", "uniform")).toBe("uniform");
+    expect(resolveEdgeFinish("sculpted", "smooth")).toBe("smooth");
   });
 });
 

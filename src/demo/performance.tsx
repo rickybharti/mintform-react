@@ -10,6 +10,7 @@ const COHORTS = [1, 4, 12] as const;
 const query = new URLSearchParams(window.location.search);
 const detail = query.get("detail") === "medium" ? "medium" : "high";
 const lowerFieldEnabled = query.get("field") !== "0";
+const appearance = query.get("appearance") === "clean" ? "clean" : "sculpted";
 
 type Measurement = {
   count: number;
@@ -132,7 +133,7 @@ function PerformanceHarness() {
         <p className="component-demo__eyebrow">mintform benchmark</p>
         <h1 id="title">Frame pacing under real coin motion</h1>
         <p>
-          Each run renders {detail}-detail tokens (
+          Each run renders {appearance} {detail}-detail tokens (
           {detail === "high" ? 120 : 80} ridge panels)
           {lowerFieldEnabled
             ? " with the lower field"
@@ -213,6 +214,7 @@ function PerformanceHarness() {
             }}
             size={160}
             thickness={16}
+            appearance={appearance}
             detail={detail}
             material={{ color: "#4dd93d" }}
             lowerField={

@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import {
   Mintform,
+  type MintformAppearance,
   type MintformDetail,
   type MintformDirection,
   type MintformEdge,
@@ -23,6 +24,8 @@ function clamp(value: number, minimum: number, maximum: number) {
 
 export default function MintformDemo() {
   const mintformRef = useRef<MintformHandle>(null);
+  const [appearance, setAppearance] =
+    useState<MintformAppearance>("sculpted");
   const [materialColor, setMaterialColor] = useState<string>();
   const [size, setSize] = useState(160);
   const [thickness, setThickness] = useState(16);
@@ -82,6 +85,7 @@ export default function MintformDemo() {
             key={`${initialRotation}:${pitch}`}
             ref={mintformRef}
             preset="sgho"
+            appearance={appearance}
             size={size}
             thickness={thickness}
             detail={detail}
@@ -131,6 +135,18 @@ export default function MintformDemo() {
 
       <aside className="component-demo__controls" aria-label="Mintform controls">
         <label>
+          Appearance
+          <select
+            value={appearance}
+            onChange={(event) =>
+              setAppearance(event.target.value as MintformAppearance)
+            }
+          >
+            <option value="sculpted">Sculpted — layered bevels</option>
+            <option value="clean">Clean — one plain cap</option>
+          </select>
+        </label>
+        <label>
           Material colour
           <input
             type="color"
@@ -177,9 +193,9 @@ export default function MintformDemo() {
               setDetail(event.target.value as MintformDetail)
             }
           >
-            <option value="low">Low — 48 ridges</option>
-            <option value="medium">Medium — 80 ridges</option>
-            <option value="high">High — 120 ridges</option>
+            <option value="low">Low — lighter adaptive mesh</option>
+            <option value="medium">Medium — balanced adaptive mesh</option>
+            <option value="high">High — smooth adaptive mesh</option>
           </select>
         </label>
         <label className="component-demo__field-toggle">
@@ -249,7 +265,13 @@ export default function MintformDemo() {
         <label>
           Edge finish
           <select
-            value={edgeFinish}
+            value={
+              edgeCustomized
+                ? edgeFinish
+                : appearance === "clean"
+                  ? "smooth"
+                  : "reeded"
+            }
             onChange={(event) => {
               setEdgeFinish(
                 event.target.value as NonNullable<MintformEdge["finish"]>,
@@ -259,6 +281,7 @@ export default function MintformDemo() {
           >
             <option value="reeded">Reeded — alternate ridge bands</option>
             <option value="uniform">Uniform — one continuous ridge tone</option>
+            <option value="smooth">Smooth — plain sidewall material</option>
           </select>
         </label>
         <label>

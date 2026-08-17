@@ -4,21 +4,16 @@ A tactile, customizable CSS 3D token component for React. Mintform keeps its
 cap, sidewall, ridge, lower-field, and animation geometry internal while
 exposing a compact art-direction API.
 
-> Status: MIT-licensed public prerelease. `0.1.0-rc.0` is published under npm's
-> `next` tag.
+> Status: MIT-licensed. The stable API begins at `0.1.0`.
 
 ## Install
 
-Mintform is currently in prerelease. Install the current prerelease explicitly:
+Install Mintform with whichever npm-compatible package manager your React
+project already uses:
 
-```bash
-npm install @rickybharti/mintform@next
-```
-
-At the moment, npm's `latest` tag also resolves to `0.1.0-rc.0`, so a bare
-`npm install @rickybharti/mintform` installs that same release candidate. Use
-`@next` until `0.1.0` ships; after that stable release, the bare install will
-resolve the stable version.
+| npm | pnpm | Yarn | Bun |
+| --- | --- | --- | --- |
+| `npm install @rickybharti/mintform` | `pnpm add @rickybharti/mintform` | `yarn add @rickybharti/mintform` | `bun add @rickybharti/mintform` |
 
 ```tsx
 import { Mintform } from "@rickybharti/mintform";
@@ -27,6 +22,7 @@ import "@rickybharti/mintform/styles.css";
 export function Token() {
   return (
     <Mintform
+      appearance="sculpted"
       size={160}
       thickness={16}
       material={{ color: "#4dd93d" }}
@@ -50,7 +46,9 @@ React 19 as peer dependencies. Rendering and motion use DOM, CSS 3D transforms,
 or framework-agnostic component today.
 
 The component does not add runtime dependencies. React owns rendering; the
-browser compositor handles transforms, shading, and CSS animation surfaces.
+browser compositor handles transform animation. Mintform schedules JavaScript
+frames only while a spin, tilt, drag, or flick is changing; the autonomous idle
+bounce is a CSS animation on its own transform track.
 
 ## Browser support
 
@@ -65,6 +63,8 @@ branded token into production.
 
 - `preset` selects the GHO, sGHO (GHO plus lower colour field), or Aave
   reference material.
+- `appearance` selects the layered `"sculpted"` cap (default) or a single
+  plain `"clean"` cap without changing the sealed 3D geometry.
 - `material.color` derives the cap, rim, highlights, primary ridge, and shadow.
 - `lighting` selects the moving shade recipe: `"reference"`, `"studio"`, or
   `"dramatic"`.
@@ -107,11 +107,24 @@ For most tokens, one base colour plus a lighting preset is the intended API:
 />
 ```
 
+The clean treatment uses the same material, lower field, marks, thickness,
+shadow, and motion API. Its default edge is `"smooth"`, while an explicit edge
+finish always wins:
+
+```tsx
+<Mintform
+  appearance="clean"
+  material={{ color: "#31df4d" }}
+  lowerField={{ color: "#9184ff", reach: 0.52, softness: 0.3 }}
+  mark={{ kind: "preset", name: "gho" }}
+/>
+```
+
 ### Art-directed materials
 
 `rendering` is the opt-in expert layer for a brand with a specific visual
-system. `rendering.material.tokens` replaces any derived token; the face and
-ridge gradients can also be replaced individually. Use the
+system. `rendering.material.tokens` replaces any derived token; sculpted face
+and ridge gradients can also be replaced individually. Use the
 `--mintform-material-*` variables inside a custom gradient when it should keep
 responding to the token's live shade.
 
@@ -149,21 +162,30 @@ npm ci
 npm run dev          # interactive playground
 npm run build:demo   # production playground and benchmark
 npm run test:all     # typecheck, property tests, build, package inspection
-npm run test:release # plus packed React consumers and ESM/CJS package audits
+npm run test:release # plus the package-manager matrix and ESM/CJS audits
 ```
 
 `npm run test:package` inspects `npm pack --dry-run` and permits only the
-explicit distribution files. `npm run test:consumer` installs that tarball into
-fresh React 18.2 and React 19 Vite consumers using NodeNext resolution in both
-module modes. `npm run test:types` additionally audits the packed ESM/CJS
-declaration boundary with publint and attw. CI runs the full release gate on
-Node 20 and 22.
+explicit distribution files. `npm run test:size` enforces gzip budgets for the
+ES module, CommonJS module, and stylesheet. `npm run test:consumer` packs once,
+then installs that exact immutable tarball with npm, pnpm, Yarn 4 Plug'n'Play,
+and Bun's isolated linker. Every manager builds fresh React 18.2 and React 19
+Vite consumers, type-checks NodeNext ESM/CommonJS imports, imports the CSS
+subpath, and loads both JavaScript module formats. `npm run test:types`
+additionally audits the packed ESM/CJS declaration boundary with publint and
+attw. CI runs the package and type gate on Node 20 and 22, plus the complete
+package-manager matrix on Node 22.
+
+Running the complete consumer matrix locally requires npm, pnpm 10, Corepack
+(which resolves the pinned Yarn 4.18 fixture), and Bun 1.3. CI provisions pnpm
+10.34.5 and Bun 1.3.14 explicitly. These are release-test tools only; Mintform
+still publishes one package to the npm registry and adds no runtime dependency.
 
 ## Publishing
 
-The reviewed prerelease uses npm's public `next` tag. Its publish action stays
+Stable releases use npm's default `latest` tag. The publish action stays
 separate from the release commit so the owner can confirm the exact package,
-version, and access immediately before publication. See
+version, access, and provenance immediately before publication. See
 [PUBLISHING-CHECKLIST.md](./PUBLISHING-CHECKLIST.md).
 
 ## Contributing and security

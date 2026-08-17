@@ -12,6 +12,10 @@ changes isolated; do not rely solely on a front-facing screenshot.
 4. Run `npm run test:release` for package-boundary changes.
 5. Record any new visual invariant in [TESTING.md](./TESTING.md).
 
+The release gate expects npm, pnpm 10, Corepack, and Bun 1.3 to be available.
+It packs Mintform once and builds that exact tarball in npm, pnpm, Yarn 4 PnP,
+and Bun consumers. GitHub Actions provisions the pinned tool versions.
+
 ## Public API policy
 
 Normal props express visual intent. Cap depth, panel radius, panel transforms,

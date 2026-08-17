@@ -1,9 +1,55 @@
-/* The body and shadow are the only layers that animate. Lower-field material
-   belongs to the faces and ridge mesh, so it needs no independently animated
-   plane. */
+/* Press/drag rotation stays imperative because it is interruptible. The
+   autonomous idle bounce lives on separate CSS tracks so it can run off the
+   main thread without competing for the body's 3D transform. */
 .mintform__body,
-.mintform__shadow-track {
+.mintform__shadow-angle-track {
   will-change: auto;
+}
+
+@keyframes mintform-idle-bounce {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(calc(var(--mintform-idle-height) * -1));
+  }
+}
+
+@keyframes mintform-shadow-bounce {
+  0%,
+  100% {
+    opacity: var(--mintform-shadow-base-opacity);
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: var(--mintform-shadow-bounce-opacity);
+    transform: scale(var(--mintform-shadow-bounce-scale));
+  }
+}
+
+.mintform[data-mintform-idle="bounce"] .mintform__idle-track,
+.mintform[data-mintform-idle="bounce"] .mintform__shadow-idle-track {
+  animation-duration: var(--mintform-idle-duration);
+  animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1);
+  animation-delay: var(--mintform-idle-delay);
+  animation-iteration-count: infinite;
+  animation-play-state: paused;
+}
+
+.mintform[data-mintform-idle="bounce"] .mintform__idle-track {
+  animation-name: mintform-idle-bounce;
+}
+
+.mintform[data-mintform-idle="bounce"] .mintform__shadow-idle-track {
+  animation-name: mintform-shadow-bounce;
+}
+
+.mintform[data-mintform-visible="true"] .mintform__idle-track,
+.mintform[data-mintform-visible="true"] .mintform__shadow-idle-track {
+  animation-play-state: running;
 }
 
 .mintform__face-field {
@@ -48,12 +94,25 @@
   background-blend-mode: color;
 }
 
+/* Smooth keeps the same overlapping, sealed sidewall mesh. It removes local
+   per-panel highlights and alternating bands, so the thickness reads as one
+   continuous material instead of a reeded edge. */
+.mintform__edge-shell[data-finish="smooth"] .mintform__edge-slice {
+  background:
+    linear-gradient(
+      var(--mintform-ridge-field-overlay),
+      var(--mintform-ridge-field-overlay)
+    ),
+    var(--mintform-face-color);
+  background-blend-mode: color;
+}
+
 .mintform[data-mintform-animating="true"] .mintform__body {
   will-change: transform;
 }
 
-.mintform[data-mintform-animating="true"] .mintform__shadow-track {
-  will-change: transform, opacity;
+.mintform[data-mintform-animating="true"] .mintform__shadow-angle-track {
+  will-change: transform;
 }
 
 /* Drag is opt-in. Pointer capture in Mintform keeps a flick attached to the
@@ -65,4 +124,11 @@
 
 .mintform[data-mintform-dragging="true"] .mintform__hit-area {
   cursor: grabbing;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mintform[data-mintform-idle="bounce"] .mintform__idle-track,
+  .mintform[data-mintform-idle="bounce"] .mintform__shadow-idle-track {
+    animation: none;
+  }
 }

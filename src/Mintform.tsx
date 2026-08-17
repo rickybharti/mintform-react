@@ -5,24 +5,27 @@ import {
   type MouseEvent as ReactMouseEvent,
   type ReactNode,
   type PointerEvent as ReactPointerEvent,
+  type Ref,
   useCallback,
-  useEffect,
   useId,
   useImperativeHandle,
   useMemo,
   useRef,
 } from "react";
+import { resolveEdgeFinish, resolveEdgeSegments } from "./core/appearance";
+import { clamp, finite, ridgeFieldStrength } from "./core/geometry";
+import { deriveMaterialTokens, type MaterialTokens } from "./core/material";
+import { pitchArcOffset } from "./core/motion";
 import {
-  clamp,
-  finite,
-  type ProjectedNormal,
-  projectCoinNormal,
-  ridgeFieldStrength,
-} from "./core/geometry";
+  type MintformAnimationState,
+  type MintformRuntime,
+  useMintformMotion,
+} from "./runtime/useMintformMotion";
 import "./MintformBase.css";
 import "./Mintform.css";
 
 export type CSSColor = string;
+export type MintformAppearance = "sculpted" | "clean";
 export type MintformPreset = "gho" | "sgho" | "aave";
 export type MintformDetail = "low" | "medium" | "high";
 export type MintformDirection = "clockwise" | "counterclockwise" | "alternate";
@@ -61,8 +64,8 @@ export type MintformLowerField =
 export type MintformEdge = {
   accentColor?: CSSColor;
   accentEvery?: 2 | 3 | 4 | false;
-  /** Keeps the same sealed ridge mesh, with or without alternating bands. */
-  finish?: "reeded" | "uniform";
+  /** Keeps one sealed sidewall while changing how its panels are painted. */
+  finish?: "reeded" | "uniform" | "smooth";
 };
 
 export type MintformMark =
@@ -186,6 +189,8 @@ export type MintformButtonProps = Omit<
 
 export type MintformProps = {
   preset?: MintformPreset;
+  /** Sculpted bevel stack or a single clean cap. Geometry stays sealed. */
+  appearance?: MintformAppearance;
   size?: number;
   thickness?: number;
   detail?: MintformDetail;
@@ -213,8 +218,6 @@ export type MintformProps = {
 
 type CSSVars = CSSProperties & Record<`--${string}`, string | number>;
 
-type MaterialTokens = Required<MintformMaterialTokens>;
-
 type FaceRendering = {
   outerGradient: string;
   rimGradient: string;
@@ -235,33 +238,6 @@ type ResolvedPalette = {
   edgePrimary: CSSColor;
   edgeAlternate: CSSColor;
 };
-
-type AnimationState = {
-  rotation: number;
-  target: number;
-  velocity: number;
-  tilt: number;
-  tiltTarget: number;
-  tiltVelocity: number;
-  usesPitchArc: boolean;
-  pitchOrigin: number;
-  pitchTarget: number;
-  pitchStartOffset: number;
-};
-
-type Frame = {
-  y: number;
-  rotation: number;
-  pitch: number;
-  shadowScale: number;
-  shadowOpacity: number;
-  shadowWidth: number;
-  shadowX: number;
-  faceShade: number;
-  edgeShade: number;
-};
-
-type AppliedFrame = Frame | null;
 
 type DragState = {
   pointerId: number;
@@ -315,12 +291,6 @@ const DEFAULT_FACE: FaceRendering = {
   surfaceInset: 18,
 };
 
-const DETAIL_SEGMENTS: Record<MintformDetail, number> = {
-  low: 48,
-  medium: 80,
-  high: 120,
-};
-
 // A ridge panel must be at least as wide as its tangential spacing around the
 // circumference. The small extra overlap prevents hairline seams at side view.
 const MIN_PANEL_WIDTH_RATIO = Math.PI + 0.05;
@@ -357,169 +327,6 @@ const PROFILE_MOTION = {
     bounceDurationMs: 3800,
   },
 } as const;
-
-const LIGHTING_PROFILES = {
-  reference: null,
-  studio: { x: -0.45, y: -0.25, z: 0.86, strength: 0.38 },
-  dramatic: { x: -0.68, y: -0.4, z: 0.61, strength: 0.62 },
-} as const;
-
-function easeInOut(value: number) {
-  const t = clamp(value, 0, 1);
-  return t * t * (3 - 2 * t);
-}
-
-function pingPong(value: number) {
-  const phase = ((value % 1) + 1) % 1;
-  return phase < 0.5 ? easeInOut(phase * 2) : easeInOut((1 - phase) * 2);
-}
-
-function spinProgress(rotation: number, origin: number, target: number) {
-  const distance = target - origin;
-  if (Math.abs(distance) < 0.000001) return 1;
-  return clamp((rotation - origin) / distance, 0, 1);
-}
-
-function pitchArcOffset(
-  rotation: number,
-  origin: number,
-  target: number,
-  startOffset: number,
-  arc: number,
-) {
-  const progress = spinProgress(rotation, origin, target);
-  return startOffset * (1 - progress) + arc * Math.sin(Math.PI * progress);
-}
-
-function shadingForNormal(normal: ProjectedNormal, lighting: MintformLighting) {
-  const edgeOn = Math.hypot(normal.x, normal.y);
-  const reference = {
-    faceShade: edgeOn ** 2,
-    edgeShade: normal.z ** 2,
-  };
-  const profile = LIGHTING_PROFILES[lighting];
-
-  if (!profile) return reference;
-
-  // The viewer-facing normal is deliberate: both physical faces retain the
-  // readable, luminous token treatment while the X/Y light direction still
-  // moves coherently as the coin turns and tilts.
-  const directLight = clamp(
-    normal.x * profile.x +
-      normal.y * profile.y +
-      Math.abs(normal.z) * profile.z,
-    0,
-    1,
-  );
-  const directionalShade = 1 - directLight;
-
-  return {
-    faceShade: clamp(
-      reference.faceShade * (1 - profile.strength) +
-        directionalShade * profile.strength,
-      0,
-      1,
-    ),
-    edgeShade: clamp(
-      reference.edgeShade * (1 - profile.strength * 0.55) +
-        directionalShade * profile.strength * 0.55,
-      0,
-      1,
-    ),
-  };
-}
-
-type HslColor = {
-  hue: number;
-  saturation: number;
-  lightness: number;
-};
-
-function parseHexToHsl(color: string): HslColor | null {
-  const normalized = color.trim().replace(/^#/, "");
-  const hex =
-    normalized.length === 3
-      ? normalized
-          .split("")
-          .map((channel) => channel + channel)
-          .join("")
-      : normalized;
-
-  if (!/^[0-9a-f]{6}$/i.test(hex)) return null;
-
-  const red = Number.parseInt(hex.slice(0, 2), 16) / 255;
-  const green = Number.parseInt(hex.slice(2, 4), 16) / 255;
-  const blue = Number.parseInt(hex.slice(4, 6), 16) / 255;
-  const maximum = Math.max(red, green, blue);
-  const minimum = Math.min(red, green, blue);
-  const delta = maximum - minimum;
-  const lightness = (maximum + minimum) / 2;
-
-  let hue = 0;
-  if (delta !== 0) {
-    if (maximum === red) hue = ((green - blue) / delta) % 6;
-    if (maximum === green) hue = (blue - red) / delta + 2;
-    if (maximum === blue) hue = (red - green) / delta + 4;
-    hue = (hue * 60 + 360) % 360;
-  }
-
-  const saturation =
-    delta === 0 ? 0 : delta / (1 - Math.abs(2 * lightness - 1));
-
-  return { hue, saturation: saturation * 100, lightness: lightness * 100 };
-}
-
-function hsl({ hue, saturation, lightness }: HslColor) {
-  return `hsl(${Math.round(hue)} ${Math.round(saturation)}% ${Math.round(lightness)}%)`;
-}
-
-/**
- * Converts one intentional material colour into the coherent palette required
- * by the cap, rim, ridge, lighting, and shadow layers.
- */
-export function deriveMaterialTokens(color: CSSColor): MaterialTokens {
-  const base = parseHexToHsl(color);
-
-  if (!base) {
-    return {
-      faceBase: color,
-      faceMid: `color-mix(in oklab, ${color}, #000 16%)`,
-      faceShadow: `color-mix(in oklab, ${color}, #000 34%)`,
-      faceHighlight: `color-mix(in oklab, ${color}, #fff 28%)`,
-      faceDepthHighlight: `color-mix(in oklab, ${color}, #000 12%)`,
-      edgeBase: color,
-      edgeAccent: `color-mix(in oklab, ${color}, #000 16%)`,
-      mark: "#ffffff",
-    };
-  }
-
-  const neutral = base.saturation < 8;
-  const shade = (hue: number, saturation: number, lightness: number) =>
-    hsl({
-      hue: neutral ? 0 : hue,
-      saturation: neutral ? 0 : clamp(saturation, 18, 92),
-      lightness: clamp(lightness, 5, 94),
-    });
-
-  return {
-    faceBase: color,
-    faceMid: shade(base.hue + 3, base.saturation * 0.75, base.lightness - 3),
-    faceShadow: shade(base.hue + 3, base.saturation * 0.7, base.lightness - 13),
-    faceHighlight: shade(
-      base.hue + 31,
-      base.saturation + 17,
-      base.lightness + 16,
-    ),
-    faceDepthHighlight: shade(
-      base.hue + 30,
-      base.saturation - 10,
-      base.lightness - 9,
-    ),
-    edgeBase: color,
-    edgeAccent: shade(base.hue + 3, base.saturation * 0.75, base.lightness - 3),
-    mark: "#ffffff",
-  };
-}
 
 function defaultMarkForPreset(preset: MintformPreset): MintformMark {
   return {
@@ -606,12 +413,18 @@ function Mark({
 
 function Face({
   side,
+  appearance,
+  faceRef,
+  faceStyle,
   mark,
   markColor,
   size,
   hasLowerField,
 }: {
   side: "front" | "back";
+  appearance: MintformAppearance;
+  faceRef: Ref<HTMLDivElement>;
+  faceStyle: CSSVars;
   mark: MintformMark;
   markColor: CSSColor;
   size: number;
@@ -619,13 +432,20 @@ function Face({
 }) {
   return (
     <div
+      ref={faceRef}
       className={`mintform__face mintform__face--${side}`}
-      style={{ "--mintform-logo-color": markColor } as CSSVars}
+      style={{ ...faceStyle, "--mintform-logo-color": markColor } as CSSVars}
     >
-      <div className="mintform__face-outer" />
-      <div className="mintform__face-rim" />
-      <div className="mintform__face-inner-ring" />
-      <div className="mintform__face-surface" />
+      {appearance === "clean" ? (
+        <div className="mintform__face-clean" />
+      ) : (
+        <>
+          <div className="mintform__face-outer" />
+          <div className="mintform__face-rim" />
+          <div className="mintform__face-inner-ring" />
+          <div className="mintform__face-surface" />
+        </>
+      )}
       {hasLowerField && (
         <div className="mintform__face-field" aria-hidden="true" />
       )}
@@ -638,69 +458,11 @@ function markColorFor(mark: MintformMark, fallback: CSSColor) {
   return mark.kind === "none" ? fallback : (mark.color ?? fallback);
 }
 
-function applyFrame(
-  elements: {
-    body: HTMLDivElement | null;
-    shadowTrack: HTMLDivElement | null;
-    shadow: HTMLDivElement | null;
-    hitArea: HTMLButtonElement | null;
-  },
-  frame: Frame,
-  previous: AppliedFrame,
-) {
-  if (!elements.body) return previous;
-
-  const y = `${frame.y}px`;
-  if (
-    previous === null ||
-    previous.y !== frame.y ||
-    previous.rotation !== frame.rotation ||
-    previous.pitch !== frame.pitch
-  ) {
-    elements.body.style.transform = `translateY(${frame.y}px) rotateX(${frame.pitch}deg) rotateY(${frame.rotation}deg)`;
-  }
-  if (previous === null || previous.shadowX !== frame.shadowX) {
-    elements.body.style.setProperty(
-      "--mintform-shadow-x",
-      `${frame.shadowX}px`,
-    );
-  }
-  if (previous === null || previous.faceShade !== frame.faceShade) {
-    elements.body.style.setProperty(
-      "--mintform-face-shade",
-      `${frame.faceShade}`,
-    );
-  }
-  if (previous === null || previous.edgeShade !== frame.edgeShade) {
-    elements.body.style.setProperty(
-      "--mintform-edge-shade",
-      `${frame.edgeShade}`,
-    );
-  }
-
-  if (elements.hitArea && (previous === null || previous.y !== frame.y)) {
-    elements.hitArea.style.transform = `translateY(${y})`;
-  }
-
-  if (elements.shadowTrack && elements.shadow) {
-    if (previous === null || previous.shadowScale !== frame.shadowScale) {
-      elements.shadowTrack.style.transform = `translateX(50%) scale(${frame.shadowScale})`;
-    }
-    if (previous === null || previous.shadowOpacity !== frame.shadowOpacity) {
-      elements.shadowTrack.style.opacity = `${frame.shadowOpacity}`;
-    }
-    if (previous === null || previous.shadowWidth !== frame.shadowWidth) {
-      elements.shadow.style.width = `${frame.shadowWidth}%`;
-    }
-  }
-
-  return frame;
-}
-
 export const Mintform = forwardRef<MintformHandle, MintformProps>(
   function Mintform(
     {
       preset = "gho",
+      appearance = "sculpted",
       size: requestedSize = 160,
       thickness: requestedThickness,
       detail = "high",
@@ -725,6 +487,8 @@ export const Mintform = forwardRef<MintformHandle, MintformProps>(
     },
     ref,
   ) {
+    const resolvedAppearance: MintformAppearance =
+      appearance === "clean" ? "clean" : "sculpted";
     const size = clamp(finite(requestedSize, 160), 48, 1024);
     const sizeScale = size / 160;
     const thickness = clamp(
@@ -753,7 +517,7 @@ export const Mintform = forwardRef<MintformHandle, MintformProps>(
     const resolvedLighting: MintformLighting =
       lighting === "studio" || lighting === "dramatic" ? lighting : "reference";
     const initialRotationRef = useRef(initialRotation);
-    const animationRef = useRef<AnimationState>({
+    const animationRef = useRef<MintformAnimationState>({
       rotation: initialRotation,
       target: initialRotation,
       velocity: 0,
@@ -769,15 +533,14 @@ export const Mintform = forwardRef<MintformHandle, MintformProps>(
     const reducedMotionRef = useRef(false);
     const rootRef = useRef<HTMLDivElement>(null);
     const bodyRef = useRef<HTMLDivElement>(null);
-    const shadowTrackRef = useRef<HTMLDivElement>(null);
-    const shadowRef = useRef<HTMLDivElement>(null);
+    const frontFaceRef = useRef<HTMLDivElement>(null);
+    const backFaceRef = useRef<HTMLDivElement>(null);
+    const edgeShellRef = useRef<HTMLDivElement>(null);
+    const shadowAngleTrackRef = useRef<HTMLDivElement>(null);
     const hitAreaRef = useRef<HTMLButtonElement>(null);
     const dragStateRef = useRef<DragState | null>(null);
     const suppressClickRef = useRef(false);
-    const runtimeRef = useRef<{
-      render: () => void;
-      start: () => void;
-    } | null>(null);
+    const runtimeRef = useRef<MintformRuntime | null>(null);
 
     const resolvedMotion = useMemo(() => {
       const profile = PROFILE_MOTION[motion?.profile ?? "reference"];
@@ -916,11 +679,12 @@ export const Mintform = forwardRef<MintformHandle, MintformProps>(
       };
     }, [rendering?.face]);
 
-    const safeSegments = clamp(
-      Math.round(finite(rendering?.edge?.segments, DETAIL_SEGMENTS[detail])),
-      24,
-      240,
+    const safeSegments = resolveEdgeSegments(
+      size,
+      detail,
+      rendering?.edge?.segments,
     );
+    const edgeFinish = resolveEdgeFinish(resolvedAppearance, edge?.finish);
     const panelWidthRatio = clamp(
       finite(rendering?.edge?.panelWidthRatio, 3.4),
       MIN_PANEL_WIDTH_RATIO,
@@ -934,7 +698,7 @@ export const Mintform = forwardRef<MintformHandle, MintformProps>(
       [safeSegments],
     );
     const accentEvery =
-      edge?.finish === "uniform" || edge?.accentEvery === false
+      edgeFinish !== "reeded" || edge?.accentEvery === false
         ? 0
         : edge?.accentEvery === 3 || edge?.accentEvery === 4
           ? edge.accentEvery
@@ -1008,206 +772,23 @@ export const Mintform = forwardRef<MintformHandle, MintformProps>(
 
     useImperativeHandle(ref, () => ({ spin, reset }), [reset, spin]);
 
-    useEffect(() => {
-      const body = bodyRef.current;
-      if (!body) return;
-      const root = rootRef.current;
-      const initialState = animationRef.current;
-      if (!dragStateRef.current) {
-        initialState.tilt = pitch;
-        initialState.tiltTarget = pitch;
-        initialState.tiltVelocity = 0;
-      }
-
-      const media = window.matchMedia("(prefers-reduced-motion: reduce)");
-      reducedMotionRef.current = media.matches;
-      const onPreferenceChange = (event: MediaQueryListEvent) => {
-        reducedMotionRef.current = event.matches;
-        runtimeRef.current?.render();
-        if (!event.matches) runtimeRef.current?.start();
-      };
-      media.addEventListener("change", onPreferenceChange);
-
-      let frameId: number | null = null;
-      let disposed = false;
-      const startedAt = performance.now();
-      let lastTime = startedAt;
-      let isInViewport = true;
-      let previousFrame: AppliedFrame = null;
-      let animationActive = false;
-
-      const canAnimate = () =>
-        isInViewport && document.visibilityState === "visible";
-      const setAnimationActive = (active: boolean) => {
-        if (!root || animationActive === active) return;
-        animationActive = active;
-        root.dataset.mintformAnimating = active ? "true" : "false";
-      };
-
-      const render = (now: number) => {
-        const state = animationRef.current;
-        const reduced = reducedMotionRef.current;
-        const deltaSeconds = Math.min((now - lastTime) / 1000, 0.05);
-        lastTime = now;
-        const spinning =
-          Math.abs(state.target - state.rotation) >= 0.02 ||
-          Math.abs(state.velocity) >= 0.02;
-        const tilting =
-          Math.abs(state.tiltTarget - state.tilt) >= 0.02 ||
-          Math.abs(state.tiltVelocity) >= 0.02;
-
-        if (!reduced && spinning) {
-          const acceleration =
-            resolvedMotion.springStiffness * (state.target - state.rotation) -
-            resolvedMotion.springDamping * state.velocity;
-          state.velocity += acceleration * deltaSeconds;
-          state.rotation += state.velocity * deltaSeconds;
-
-          if (
-            Math.abs(state.target - state.rotation) < 0.02 &&
-            Math.abs(state.velocity) < 0.02
-          ) {
-            state.rotation = state.target;
-            state.velocity = 0;
-          }
-        }
-
-        if (!reduced && tilting) {
-          const acceleration =
-            resolvedMotion.springStiffness * (state.tiltTarget - state.tilt) -
-            resolvedMotion.springDamping * state.tiltVelocity;
-          state.tiltVelocity += acceleration * deltaSeconds;
-          state.tilt += state.tiltVelocity * deltaSeconds;
-
-          if (
-            Math.abs(state.tiltTarget - state.tilt) < 0.02 &&
-            Math.abs(state.tiltVelocity) < 0.02
-          ) {
-            state.tilt = state.tiltTarget;
-            state.tiltVelocity = 0;
-          }
-        }
-
-        const bounceTime = now - startedAt - resolvedMotion.bouncePhaseMs;
-        const phase =
-          bounceTime <= 0 ? 0 : bounceTime / resolvedMotion.bounceDurationMs;
-        const bounce =
-          reduced || resolvedMotion.idle !== "bounce" ? 0 : pingPong(phase);
-        const pitchOffset =
-          spinning && state.usesPitchArc
-            ? pitchArcOffset(
-                state.rotation,
-                state.pitchOrigin,
-                state.pitchTarget,
-                state.pitchStartOffset,
-                resolvedMotion.pitchArc,
-              )
-            : 0;
-        const animatedPitch = clamp(state.tilt + pitchOffset, -45, 45);
-        const normal = projectCoinNormal(state.rotation, animatedPitch);
-        const screenNormalLength = Math.hypot(normal.x, normal.y);
-        const shading = shadingForNormal(normal, resolvedLighting);
-
-        previousFrame = applyFrame(
-          {
-            body,
-            shadowTrack: shadowTrackRef.current,
-            shadow: shadowRef.current,
-            hitArea: hitAreaRef.current,
-          },
-          {
-            y: -resolvedMotion.bounceHeight * bounce,
-            rotation: state.rotation,
-            pitch: animatedPitch,
-            shadowScale: 1 - resolvedShadow.bounceScaleReduction * bounce,
-            shadowOpacity:
-              resolvedShadow.baseOpacity -
-              resolvedShadow.bounceOpacityReduction * bounce,
-            shadowWidth:
-              resolvedShadow.baseWidth -
-              resolvedShadow.widthReduction * screenNormalLength,
-            shadowX: 4 * normal.x * sizeScale,
-            faceShade: shading.faceShade,
-            edgeShade: shading.edgeShade,
-          },
-          previousFrame,
-        );
-      };
-
-      const shouldContinue = () => {
-        const state = animationRef.current;
-        const spinning =
-          Math.abs(state.target - state.rotation) >= 0.02 ||
-          Math.abs(state.velocity) >= 0.02;
-        const tilting =
-          Math.abs(state.tiltTarget - state.tilt) >= 0.02 ||
-          Math.abs(state.tiltVelocity) >= 0.02;
-
-        return (
-          canAnimate() &&
-          !reducedMotionRef.current &&
-          (spinning || tilting || resolvedMotion.idle === "bounce")
-        );
-      };
-
-      const tick = (now: number) => {
-        frameId = null;
-        if (!canAnimate()) {
-          setAnimationActive(false);
-          return;
-        }
-        render(now);
-
-        if (!disposed && shouldContinue()) {
-          frameId = requestAnimationFrame(tick);
-        } else {
-          setAnimationActive(false);
-        }
-      };
-
-      const start = () => {
-        if (disposed || frameId !== null || !canAnimate()) return;
-        lastTime = performance.now();
-        setAnimationActive(true);
-        frameId = requestAnimationFrame(tick);
-      };
-
-      const onVisibilityChange = () => {
-        if (!canAnimate()) setAnimationActive(false);
-        if (canAnimate() && shouldContinue()) start();
-      };
-
-      const observer =
-        root && "IntersectionObserver" in window
-          ? new IntersectionObserver(([entry]) => {
-              isInViewport = entry.isIntersecting;
-              if (!canAnimate()) setAnimationActive(false);
-              if (canAnimate() && shouldContinue()) start();
-            })
-          : null;
-      if (root && observer) observer.observe(root);
-      document.addEventListener("visibilitychange", onVisibilityChange);
-
-      runtimeRef.current = {
-        render: () => render(performance.now()),
-        start,
-      };
-
-      runtimeRef.current.render();
-      if (!reducedMotionRef.current && resolvedMotion.idle === "bounce") {
-        start();
-      }
-
-      return () => {
-        disposed = true;
-        if (frameId !== null) cancelAnimationFrame(frameId);
-        runtimeRef.current = null;
-        media.removeEventListener("change", onPreferenceChange);
-        document.removeEventListener("visibilitychange", onVisibilityChange);
-        observer?.disconnect();
-        setAnimationActive(false);
-      };
-    }, [resolvedMotion, resolvedShadow, pitch, resolvedLighting, sizeScale]);
+    useMintformMotion({
+      rootRef,
+      bodyRef,
+      frontFaceRef,
+      backFaceRef,
+      edgeShellRef,
+      shadowAngleTrackRef,
+      animationRef,
+      reducedMotionRef,
+      runtimeRef,
+      dragStateRef,
+      motion: resolvedMotion,
+      shadow: resolvedShadow,
+      pitch,
+      lighting: resolvedLighting,
+      sizeScale,
+    });
 
     const cssVars: CSSVars = {
       "--mintform-size": `${size}px`,
@@ -1234,9 +815,18 @@ export const Mintform = forwardRef<MintformHandle, MintformProps>(
       "--mintform-shadow-bottom": `${resolvedShadow.bottom}px`,
       "--mintform-shadow-blur": `${resolvedShadow.blur}px`,
       "--mintform-shadow-spread": `${resolvedShadow.spread}px`,
+      "--mintform-idle-height": `${resolvedMotion.bounceHeight}px`,
+      "--mintform-idle-duration": `${resolvedMotion.bounceDurationMs}ms`,
+      "--mintform-idle-delay": `${resolvedMotion.bouncePhaseMs}ms`,
+      "--mintform-shadow-base-opacity": resolvedShadow.baseOpacity,
+      "--mintform-shadow-bounce-opacity": Math.max(
+        0,
+        resolvedShadow.baseOpacity - resolvedShadow.bounceOpacityReduction,
+      ),
+      "--mintform-shadow-bounce-scale": 1 - resolvedShadow.bounceScaleReduction,
     };
 
-    const bodyCssVars: CSSVars = {
+    const faceCssVars: CSSVars = {
       "--mintform-face-outer-gradient": resolvedFace.outerGradient,
       "--mintform-face-rim-gradient": resolvedFace.rimGradient,
       "--mintform-face-inner-gradient": resolvedFace.innerRingGradient,
@@ -1456,53 +1046,72 @@ export const Mintform = forwardRef<MintformHandle, MintformProps>(
         ref={rootRef}
         className={`mintform ${className}`.trim()}
         data-mintform-preset={preset}
+        data-mintform-appearance={resolvedAppearance}
+        data-mintform-idle={resolvedMotion.idle}
+        data-mintform-visible="true"
         data-mintform-drag={dragEnabled ? "true" : undefined}
         style={{ ...cssVars, ...safeStyle }}
       >
-        <div ref={bodyRef} className="mintform__body" style={bodyCssVars}>
-          <div
-            className="mintform__edge-shell"
-            data-finish={edge?.finish ?? "reeded"}
-          >
-            {edgeSegments}
+        <div className="mintform__idle-track">
+          <div ref={bodyRef} className="mintform__body">
+            <div
+              ref={edgeShellRef}
+              className="mintform__edge-shell"
+              data-finish={edgeFinish}
+            >
+              {edgeSegments}
+            </div>
+            <Face
+              side="front"
+              appearance={resolvedAppearance}
+              faceRef={frontFaceRef}
+              faceStyle={faceCssVars}
+              mark={frontMark}
+              markColor={frontMarkColor}
+              size={size}
+              hasLowerField={resolvedField.enabled}
+            />
+            <div className="mintform__face-inner--front" aria-hidden="true" />
+            <Face
+              side="back"
+              appearance={resolvedAppearance}
+              faceRef={backFaceRef}
+              faceStyle={faceCssVars}
+              mark={backMark}
+              markColor={backMarkColor}
+              size={size}
+              hasLowerField={resolvedField.enabled}
+            />
+            <div className="mintform__face-inner--back" aria-hidden="true" />
           </div>
-          <Face
-            side="front"
-            mark={frontMark}
-            markColor={frontMarkColor}
-            size={size}
-            hasLowerField={resolvedField.enabled}
-          />
-          <div className="mintform__face-inner--front" aria-hidden="true" />
-          <Face
-            side="back"
-            mark={backMark}
-            markColor={backMarkColor}
-            size={size}
-            hasLowerField={resolvedField.enabled}
-          />
-          <div className="mintform__face-inner--back" aria-hidden="true" />
+
+          {interactive && (
+            <button
+              {...restButtonProps}
+              ref={hitAreaRef}
+              className="mintform__hit-area"
+              type="button"
+              aria-label={buttonAriaLabel ?? ariaLabel}
+              onClick={handleButtonClick}
+              onPointerDown={handleButtonPointerDown}
+              onPointerMove={handleButtonPointerMove}
+              onPointerUp={handleButtonPointerUp}
+              onPointerCancel={handleButtonPointerCancel}
+            />
+          )}
         </div>
 
         {resolvedShadow.enabled && (
-          <div ref={shadowTrackRef} className="mintform__shadow-track">
-            <div ref={shadowRef} className="mintform__shadow" />
+          <div className="mintform__shadow-anchor">
+            <div
+              ref={shadowAngleTrackRef}
+              className="mintform__shadow-angle-track"
+            >
+              <div className="mintform__shadow-idle-track">
+                <div className="mintform__shadow" />
+              </div>
+            </div>
           </div>
-        )}
-
-        {interactive && (
-          <button
-            {...restButtonProps}
-            ref={hitAreaRef}
-            className="mintform__hit-area"
-            type="button"
-            aria-label={buttonAriaLabel ?? ariaLabel}
-            onClick={handleButtonClick}
-            onPointerDown={handleButtonPointerDown}
-            onPointerMove={handleButtonPointerMove}
-            onPointerUp={handleButtonPointerUp}
-            onPointerCancel={handleButtonPointerCancel}
-          />
         )}
       </div>
     );

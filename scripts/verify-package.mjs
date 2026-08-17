@@ -29,11 +29,15 @@ try {
   assert.equal(
     manifest.private,
     false,
-    "The reviewed prerelease must be explicitly publishable.",
+    "The reviewed package must be explicitly publishable.",
   );
   assert.equal(manifest.name, "@rickybharti/mintform");
   assert.equal(manifest.publishConfig.access, "public");
-  assert.equal(manifest.publishConfig.tag, "next");
+  assert.equal(
+    manifest.publishConfig.tag,
+    manifest.version.includes("-") ? "next" : undefined,
+    "Prereleases must use the next tag; stable releases must use npm's default latest tag.",
+  );
   assert.equal(manifest.exports["."].import.types, "./dist/index.d.ts");
   assert.equal(manifest.exports["."].import.default, "./dist/index.js");
   assert.equal(manifest.exports["."].require.types, "./dist/index.d.cts");

@@ -13,12 +13,13 @@ import "@rickybharti/mintform/styles.css";
 | Prop | Contract |
 | --- | --- |
 | `preset` | `"gho"` (default), `"sgho"`, or `"aave"`. Supplies the authored default palette and mark; `sgho` also enables its lower colour field by default. Passing `material` replaces the cap palette but retains the preset's other defaults. |
+| `appearance` | `"sculpted"` (default) renders the existing outer disk, rim, inner ring, and inset surface. `"clean"` renders one plain material cap per side. Both use the same sealed sidewall, marks, lower field, lighting, shadow, and motion system. |
 | `size` | Diameter in CSS pixels. Defaults to `160`, clamps to `48`–`1024`. |
 | `thickness` | Physical cap-to-cap depth. Defaults to 10% of `size`, clamps to 4%–25% of `size`. |
-| `detail` | Ridge density: `"low"` (48), `"medium"` (80), or `"high"` (120, default). |
+| `detail` | Adaptive sidewall density: `"low"`, `"medium"`, or `"high"` (default). At the 160px reference size these resolve to 48, 80, and 120 panels. Density scales with `size` and clamps to 24–240 panels so larger tokens stay round without unbounded DOM growth. |
 | `material` | `{ color }`. One valid CSS colour derives the cap, rim, highlight, shadow, primary ridge, and alternating ridge palette. The ground shadow follows this material unless a lower field is enabled. Hex colours receive a tuned HSL palette; other valid CSS colours use local `color-mix()` derivation. `rendering.material.tokens` can replace any derived token. |
 | `lowerField` | `false`, or `{ color, reach?, softness? }`. It tints the physical lower caps and ridge mesh. `reach` clamps to 0.05–1 (default 0.5); `softness` clamps to 0.01–`reach` (default 0.3). Pass `false` to remove the sGHO field. |
-| `edge` | `{ accentColor?, accentEvery?, finish? }`. `accentEvery` is `2`, `3`, `4`, or `false`; `finish` is `"reeded"` (default) or `"uniform"`. This changes ridge paint only, never ridge geometry. |
+| `edge` | `{ accentColor?, accentEvery?, finish? }`. `accentEvery` is `2`, `3`, `4`, or `false`; `finish` is `"reeded"`, `"uniform"`, or `"smooth"`. Sculpted defaults to reeded and clean defaults to smooth. `reeded` permits alternating bands, `uniform` keeps one colour with per-panel highlight, and `smooth` removes both. An explicit finish always wins. This changes sidewall paint only, never geometry. |
 | `shadow` | `false`, or `{ intensity?, color? }`. Intensity clamps to 0–1; the default colour follows the lower field when enabled, otherwise the cap material. |
 | `lighting` | `"reference"` (default), `"studio"`, or `"dramatic"`. Mintform derives live face/ridge shade from the token's rotation and pitch. `reference` uses the reference angle-based recipe; `studio` and `dramatic` add increasingly strong directional shading. These are paint recipes, not additional render passes or physical lights. |
 
@@ -45,10 +46,11 @@ preset palette or material.color derivation
 `edge.accentColor` remains the focused override for alternating ridges, and
 `rendering.edge.baseColor` is the focused override for the primary ridge.
 
-`rendering.face.gradients` may replace the `outer`, `rim`, `innerRing`, or
-`surface` gradients. Build a custom gradient from `--mintform-material-*`
-variables when it should retain live shading; a literal-colour gradient is an
-intentional fixed-paint override.
+In sculpted mode, `rendering.face.gradients` may replace the `outer`, `rim`,
+`innerRing`, or `surface` gradients. Build a custom gradient from
+`--mintform-material-*` variables when it should retain live shading; a
+literal-colour gradient is an intentional fixed-paint override. Clean mode has
+no bevel layers, so those face-only overrides are intentionally ignored.
 
 ## Marks and faces
 
@@ -133,14 +135,20 @@ configuration:
   `edgeAccent`, and `mark`.
 - `rendering.face`: `rimInset`, `innerRingInset`, `surfaceInset`, and a subset
   of `outer`, `rim`, `innerRing`, and `surface` CSS gradients.
-- `rendering.edge`: `segments` (clamped to 24–240), `panelWidthRatio` (safe
-  overlap range), and `baseColor`.
+- `rendering.edge`: `segments` (an exact 24–240 override for the adaptive
+  `detail` resolver), `panelWidthRatio` (safe overlap range), and `baseColor`.
 - `rendering.shadow`: `bottom`, `blur`, and `spread`.
 - `rendering.motion`: `spinDegrees`, spring stiffness/damping, and bounce
   height/timing.
 
 It cannot independently move the caps or sidewall: sealed geometry, paint
 ordering, and per-frame transform ownership remain internal invariants.
+
+Idle bounce is a compositor-friendly CSS transform on a wrapper track. The
+interruptible spring loop owns only rotation, pitch, orientation shade, and
+angle-dependent shadow width; it stops requesting frames at rest. Under
+`prefers-reduced-motion: reduce`, idle motion is removed and press spins resolve
+without interpolated movement.
 
 For the complete TypeScript source of truth, import `MintformProps` from the
 package root.

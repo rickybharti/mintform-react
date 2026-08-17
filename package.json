@@ -1,7 +1,7 @@
 {
   "name": "@rickybharti/mintform",
   "private": false,
-  "version": "0.1.0-rc.0",
+  "version": "0.1.0",
   "description": "A tactile, customizable CSS 3D token component for React.",
   "keywords": [
     "react",
@@ -65,8 +65,7 @@
     "**/*.css"
   ],
   "publishConfig": {
-    "access": "public",
-    "tag": "next"
+    "access": "public"
   },
   "engines": {
     "node": ">=20.19.0"
@@ -86,12 +85,33 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:package": "node scripts/verify-package.mjs",
-    "test:consumer": "node scripts/verify-consumer.mjs 18 && node scripts/verify-consumer.mjs 19",
+    "test:size": "size-limit",
+    "test:consumer": "node scripts/verify-consumers.mjs",
     "test:types": "publint && attw --pack . --exclude-entrypoints ./styles.css",
-    "test:all": "npm run check && npm run test && npm run build && npm run test:package",
+    "test:all": "npm run check && npm run test && npm run build && npm run test:size && npm run test:package",
     "test:release": "npm run test:all && npm run test:consumer && npm run test:types",
     "prepack": "npm run test:all"
   },
+  "size-limit": [
+    {
+      "name": "ES module (gzip)",
+      "path": "dist/index.js",
+      "limit": "9 kB",
+      "gzip": true
+    },
+    {
+      "name": "CommonJS module (gzip)",
+      "path": "dist/index.cjs",
+      "limit": "8 kB",
+      "gzip": true
+    },
+    {
+      "name": "Styles (gzip)",
+      "path": "dist/mintform.css",
+      "limit": "2.25 kB",
+      "gzip": true
+    }
+  ],
   "peerDependencies": {
     "react": "^18.2.0 || ^19.0.0",
     "react-dom": "^18.2.0 || ^19.0.0"
@@ -99,6 +119,7 @@
   "devDependencies": {
     "@arethetypeswrong/cli": "0.18.5",
     "@biomejs/biome": "2.4.7",
+    "@size-limit/file": "12.1.0",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",
     "@vitejs/plugin-react": "^5.2.0",
@@ -106,6 +127,7 @@
     "publint": "0.3.23",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
+    "size-limit": "12.1.0",
     "typescript": "^5.9.3",
     "vite": "^7.3.6",
     "vitest": "^4.0.18"

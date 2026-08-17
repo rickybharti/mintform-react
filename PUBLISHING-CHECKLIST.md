@@ -14,15 +14,18 @@ publishing.
   library bundle.
 - [x] `files` limits the tarball; package inspection rejects unexpected `dist`
   artifacts.
-- [x] A packed tarball is installed and TypeScript-checked in a clean React/Vite
-  consumer.
-- [x] Packed React 18.2 and React 19 consumers type-check with NodeNext in both
-  ESM and CommonJS modes, then load both root module formats at runtime.
+- [x] One immutable packed tarball is installed and TypeScript-checked in clean
+  React/Vite consumers using npm, pnpm, Yarn 4 PnP, and Bun's isolated linker.
+- [x] Every package manager builds React 18.2 and React 19 consumers with
+  NodeNext in both ESM and CommonJS modes, then loads both root module formats
+  at runtime.
 - [x] `publint` and `attw` audit the packed Node package boundary in the
   release gate; the browser-only CSS asset is verified through the Vite
   consumer instead.
-- [x] `@rickybharti/mintform` has no existing public registry release and the
-  owner selected public distribution.
+- [x] `@rickybharti/mintform@0.1.0-rc.0` is public on the npm registry and the
+  prerelease channel is documented explicitly.
+- [x] Stable `0.1.0` metadata publishes publicly with npm's default `latest`
+  tag.
 
 ## API and compatibility
 
@@ -47,8 +50,14 @@ publishing.
 ## Supply chain and CI
 
 - [x] CI runs `npm ci` and the release gate on Node 20 and 22.
-- [x] Protect `main`: require Node 20 and Node 22 checks and reject force
-  pushes/deletion. Reviews remain optional for the owner's direct-main flow.
+- [x] CI enforces ESM, CommonJS, and CSS gzip budgets and runs the four-manager
+  consumer matrix against one tarball.
+- [x] A tag-triggered `publish.yml` reruns the complete release gate and uses
+  npm trusted publishing without a stored write token.
+- [ ] Protect `main`: require Node 20, Node 22, and the four-package-manager
+  check, and reject force pushes/deletion. The live rule already covers Node
+  20/22 and rejects force pushes/deletion; add the new matrix after its first
+  GitHub Actions run. Reviews remain optional for the owner's direct-main flow.
 - [x] npm two-factor authentication is enabled for authorization and writes.
 - [ ] Configure npm trusted publishing with GitHub Actions after the release
   repository and package visibility are final.
@@ -58,17 +67,31 @@ publishing.
   reviewed prerelease may be published locally with 2FA after explicit owner
   confirmation.
 
-## First release
+## Prerelease history
 
 - [x] Review `CHANGELOG.md` and select `0.1.0-rc.0` as the public prerelease.
 - [x] Run an isolated `npm ci`, `npm run test:release`, and `npm pack --dry-run`
   for the candidate.
-- [x] Inspect the generated tarball and install it in blank React 18.2 and 19
-  consumers.
+- [x] Inspect one generated tarball and install it in blank React 18.2 and 19
+  consumers with npm, pnpm, Yarn PnP, and Bun.
 - [x] Set `private: false` and `publishConfig` to public `next` in the reviewed
   prerelease commit.
-- [ ] Publish with the intended npm access level, tag the Git commit, and
-  confirm the package page installs correctly.
+- [x] Publish `0.1.0-rc.0` publicly, confirm the package page, and keep the
+  prerelease install command explicit until the stable release.
+
+## Stable 0.1.0
+
+- [x] Set the package version to `0.1.0` and remove the prerelease-only `next`
+  publish tag.
+- [x] Document bare npm, pnpm, Yarn, and Bun install commands for the stable
+  channel.
+- [x] Run `npm run test:release` against the exact `0.1.0` tarball.
+- [ ] Make the repository public and configure npm trusted publishing if the
+  stable package should carry public provenance.
+- [ ] Confirm the release commit passes every required GitHub Actions check.
+- [ ] Tag the reviewed release commit as `v0.1.0`.
+- [ ] Publish `@rickybharti/mintform@0.1.0` publicly and confirm npm's `latest`
+  tag resolves to it.
 
 ## Why these checks exist
 

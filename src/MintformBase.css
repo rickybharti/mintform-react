@@ -13,7 +13,12 @@
   isolation: isolate;
 }
 
-.mintform__body {
+.mintform__idle-track {
+  position: absolute;
+  inset: 0;
+}
+
+.mintform__face {
   --mintform-face-base: color-mix(
     in oklab,
     var(--mintform-material-base-raw),
@@ -47,11 +52,13 @@
   --mintform-material-shadow: var(--mintform-face-shadow);
   --mintform-material-highlight: var(--mintform-face-highlight);
   --mintform-material-depth-highlight: var(--mintform-face-depth-highlight);
+}
+
+.mintform__body {
   position: absolute;
   width: var(--mintform-size);
   height: var(--mintform-size);
   transform-style: preserve-3d;
-  will-change: transform;
 }
 
 .mintform__face {
@@ -84,9 +91,15 @@
 .mintform__face-outer,
 .mintform__face-rim,
 .mintform__face-inner-ring,
-.mintform__face-surface {
+.mintform__face-surface,
+.mintform__face-clean {
   position: absolute;
   border-radius: inherit;
+}
+
+.mintform__face-clean {
+  inset: 0;
+  background: var(--mintform-material-base);
 }
 
 .mintform__face-outer {
@@ -199,16 +212,26 @@
   content: none;
 }
 
-.mintform__shadow-track {
+.mintform__shadow-anchor {
   position: absolute;
   right: 50%;
   bottom: calc(var(--mintform-shadow-bottom) * -1 * var(--mintform-size-scale));
-  display: flex;
-  justify-content: center;
   width: 75%;
   height: 1px;
+  transform: translateX(50%);
+}
+
+.mintform__shadow-angle-track,
+.mintform__shadow-idle-track {
+  width: 100%;
+  height: 100%;
   transform-origin: center;
-  will-change: transform, opacity;
+}
+
+.mintform__shadow-idle-track {
+  display: flex;
+  justify-content: center;
+  opacity: var(--mintform-shadow-base-opacity);
 }
 
 .mintform__shadow {
@@ -238,12 +261,4 @@
 .mintform__hit-area:focus-visible {
   outline: 2px solid var(--mintform-focus-ring, #fff);
   outline-offset: 5px;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .mintform__body,
-  .mintform__shadow-track,
-  .mintform__hit-area {
-    transition: none;
-  }
 }

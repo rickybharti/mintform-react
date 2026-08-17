@@ -19,20 +19,9 @@ function removeStyleImports(declaration) {
 }
 
 function removePrivateExports(declaration) {
-  const privateMaterialTokens =
-    "type MaterialTokens = Required<MintformMaterialTokens>;\n";
-  const privateDerivation =
-    /\/\*\*\r?\n \* Converts one intentional material colour into the coherent palette required\r?\n \* by the cap, rim, ridge, lighting, and shadow layers\.\r?\n \*\/\r?\nexport declare function deriveMaterialTokens\(color: CSSColor\): MaterialTokens;\r?\n/;
-
   const publicDeclaration = declaration
-    .replace(privateMaterialTokens, "")
-    .replace(privateDerivation, "")
     .replace(/export \{};\r?\n?/, "")
     .replace(/\/\/# sourceMappingURL=.*\r?\n?/, "");
-
-  if (publicDeclaration.includes("deriveMaterialTokens")) {
-    throw new Error("A private Mintform helper leaked into the public types.");
-  }
 
   if (/from "\.\//.test(publicDeclaration)) {
     throw new Error(
@@ -70,4 +59,5 @@ await Promise.all([
   writeFile(cjsStyleDeclarationPath, styleDeclaration),
   rm(sourceDeclarationPath, { force: true }),
   rm(join(distDirectory, "core"), { recursive: true, force: true }),
+  rm(join(distDirectory, "runtime"), { recursive: true, force: true }),
 ]);

@@ -1,18 +1,28 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
+import { existsSync } from "node:fs";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
-const packageDirectory = resolve(import.meta.dirname, "..");
 const temporaryDirectory = await mkdtemp(join(tmpdir(), "mintform-consumer-"));
-const packageOutputDirectory = join(temporaryDirectory, "package");
 const consumerDirectory = join(temporaryDirectory, "consumer");
 const cacheDirectory = join(temporaryDirectory, "npm-cache");
-const reactMajor = process.argv[2] ?? "19";
+const storeDirectory = join(temporaryDirectory, "pnpm-store");
+const manager = process.argv[2];
+const reactMajor = process.argv[3];
+const tarball = process.argv[4] ? resolve(process.argv[4]) : undefined;
+const managers = ["npm", "pnpm", "yarn", "bun"];
 
-if (reactMajor !== "18" && reactMajor !== "19") {
-  throw new Error("Usage: node scripts/verify-consumer.mjs <18|19>");
+if (
+  !manager ||
+  !managers.includes(manager) ||
+  (reactMajor !== "18" && reactMajor !== "19") ||
+  !tarball
+) {
+  throw new Error(
+    "Usage: node scripts/verify-consumer.mjs <npm|pnpm|yarn|bun> <18|19> <package.tgz>",
+  );
 }
 
 const reactVersions =
@@ -20,8 +30,8 @@ const reactVersions =
     ? {
         react: "18.2.0",
         reactDom: "18.2.0",
-        reactTypes: "^18.2.0",
-        reactDomTypes: "^18.2.0",
+        reactTypes: "18.3.31",
+        reactDomTypes: "18.3.7",
       }
     : {
         react: "19.2.8",
@@ -30,35 +40,99 @@ const reactVersions =
         reactDomTypes: "19.2.4",
       };
 
-function runNpm(arguments_, cwd) {
-  execFileSync("npm", arguments_, {
-    cwd,
-    encoding: "utf8",
-    stdio: "pipe",
-  });
+function run(command, arguments_) {
+  try {
+    execFileSync(command, arguments_, {
+      cwd: consumerDirectory,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        COREPACK_ENABLE_DOWNLOAD_PROMPT: "0",
+      },
+      stdio: "pipe",
+    });
+  } catch (error) {
+    if (error && typeof error === "object") {
+      if ("stdout" in error && error.stdout) {
+        process.stderr.write(String(error.stdout));
+      }
+      if ("stderr" in error && error.stderr) {
+        process.stderr.write(String(error.stderr));
+      }
+    }
+    throw error;
+  }
+}
+
+function installAndBuild() {
+  switch (manager) {
+    case "npm":
+      run("npm", [
+        "install",
+        "--ignore-scripts",
+        "--no-audit",
+        "--no-fund",
+        "--cache",
+        cacheDirectory,
+      ]);
+      run("npm", ["run", "build"]);
+      assert.equal(
+        existsSync(join(consumerDirectory, "node_modules")),
+        true,
+        "The npm fixture must create node_modules.",
+      );
+      break;
+    case "pnpm":
+      run("pnpm", [
+        "install",
+        "--ignore-scripts",
+        "--strict-peer-dependencies",
+        "--store-dir",
+        storeDirectory,
+      ]);
+      run("pnpm", ["run", "build"]);
+      assert.equal(
+        existsSync(join(consumerDirectory, "node_modules", ".pnpm")),
+        true,
+        "The pnpm fixture must use its isolated virtual store.",
+      );
+      break;
+    case "yarn":
+      run("corepack", ["yarn", "install"]);
+      run("corepack", ["yarn", "run", "build"]);
+      assert.equal(
+        existsSync(join(consumerDirectory, "node_modules")),
+        false,
+        "The Yarn fixture must use Plug'n'Play rather than node_modules.",
+      );
+      assert.equal(
+        existsSync(join(consumerDirectory, ".pnp.cjs")),
+        true,
+        "The Yarn fixture must generate a Plug'n'Play loader.",
+      );
+      break;
+    case "bun":
+      run("bun", ["install", "--ignore-scripts", "--linker", "isolated"]);
+      run("bun", ["run", "build"]);
+      assert.equal(
+        existsSync(join(consumerDirectory, "node_modules", ".bun")),
+        true,
+        "The Bun fixture must use the isolated linker.",
+      );
+      break;
+  }
+}
+
+function runNodeSmoke(file) {
+  if (manager === "yarn") {
+    run("corepack", ["yarn", "node", file]);
+    return;
+  }
+  run(process.execPath, [file]);
 }
 
 try {
-  await Promise.all([
-    mkdir(packageOutputDirectory, { recursive: true }),
-    mkdir(join(consumerDirectory, "src"), { recursive: true }),
-  ]);
-
-  const packedOutput = execFileSync(
-    "npm",
-    [
-      "pack",
-      "--json",
-      "--ignore-scripts",
-      "--pack-destination",
-      packageOutputDirectory,
-      "--cache",
-      cacheDirectory,
-    ],
-    { cwd: packageDirectory, encoding: "utf8" },
-  );
-  const packed = JSON.parse(packedOutput)[0];
-  const tarball = join(packageOutputDirectory, packed.filename);
+  await mkdir(join(consumerDirectory, "src"), { recursive: true });
 
   await writeFile(
     join(consumerDirectory, "package.json"),
@@ -67,6 +141,7 @@ try {
         name: "mintform-packed-consumer-smoke",
         private: true,
         type: "module",
+        ...(manager === "yarn" ? { packageManager: "yarn@4.18.0" } : {}),
         scripts: { build: "tsc --noEmit && vite build" },
         dependencies: {
           "@rickybharti/mintform": `file:${tarball}`,
@@ -82,6 +157,17 @@ try {
       2,
     )}\n`,
   );
+  if (manager === "yarn") {
+    await writeFile(
+      join(consumerDirectory, ".yarnrc.yml"),
+      [
+        "nodeLinker: pnp",
+        "enableGlobalCache: false",
+        "enableScripts: false",
+        "",
+      ].join("\n"),
+    );
+  }
   await writeFile(
     join(consumerDirectory, "index.html"),
     '<!doctype html><html><body><div id="root"></div><script type="module" src="/src/main.tsx"></script></body></html>\n',
@@ -122,13 +208,14 @@ try {
       "",
       "const mintformProps = {",
       '  preset: "sgho",',
+      '  appearance: "clean",',
       "  size: 160,",
       "  thickness: 16,",
       '  detail: "high",',
       '  ariaLabel: "Packed Mintform consumer smoke test",',
       '  material: { color: "#4dd93d" },',
       '  lowerField: { color: "#978eff", reach: 0.5, softness: 0.3 },',
-      '  edge: { accentColor: "#43ad52", accentEvery: 3, finish: "reeded" },',
+      '  edge: { accentColor: "#43ad52", accentEvery: 3, finish: "smooth" },',
       '  mark: { kind: "preset", name: "gho", scale: 1, color: "#fff" },',
       "  faces: {",
       "    back: {",
@@ -218,6 +305,7 @@ try {
       "const component: typeof MintformPackage.Mintform = MintformPackage.Mintform;",
       "const props = {",
       '  preset: "gho",',
+      '  appearance: "sculpted",',
       '  motion: { idle: "none" },',
       "} satisfies MintformPackage.MintformProps;",
       "",
@@ -246,30 +334,12 @@ try {
     ].join("\n"),
   );
 
-  runNpm(
-    [
-      "install",
-      "--ignore-scripts",
-      "--no-audit",
-      "--no-fund",
-      "--cache",
-      cacheDirectory,
-    ],
-    consumerDirectory,
-  );
-  runNpm(["run", "build"], consumerDirectory);
-  execFileSync(process.execPath, ["smoke.cjs"], {
-    cwd: consumerDirectory,
-    encoding: "utf8",
-  });
-  execFileSync(process.execPath, ["smoke.mjs"], {
-    cwd: consumerDirectory,
-    encoding: "utf8",
-  });
+  installAndBuild();
+  runNodeSmoke("smoke.cjs");
+  runNodeSmoke("smoke.mjs");
 
-  assert.equal(packed.name, "@rickybharti/mintform");
   console.log(
-    `Verified React ${reactMajor} packed consumer build for ${packed.name}@${packed.version}.`,
+    `Verified ${manager}${manager === "yarn" ? " PnP" : ""} consumer with React ${reactMajor}.`,
   );
 } finally {
   await rm(temporaryDirectory, { recursive: true, force: true });

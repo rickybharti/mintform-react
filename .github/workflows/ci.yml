@@ -25,5 +25,26 @@ jobs:
           node-version: ${{ matrix.node }}
           cache: npm
       - run: npm ci
-      - run: npm run test:release
+      - run: npm run test:all
+      - run: npm run test:types
       - run: npm run build:demo
+
+  package-managers:
+    name: npm, pnpm, Yarn PnP, and Bun
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.34.5
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+      - run: corepack enable
+      - run: npm ci
+      - run: npm run build
+      - run: npm run test:consumer

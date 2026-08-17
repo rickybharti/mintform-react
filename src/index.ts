@@ -1,6 +1,7 @@
 export {
   type CSSColor,
   Mintform,
+  type MintformAppearance,
   type MintformButtonProps,
   type MintformDetail,
   type MintformDirection,
