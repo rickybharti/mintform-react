@@ -58,13 +58,11 @@ publishing.
   check with strict up-to-date validation, and reject force pushes/deletion.
   Reviews remain optional for the owner's direct-main flow.
 - [x] npm two-factor authentication is enabled for authorization and writes.
-- [ ] Configure npm trusted publishing with GitHub Actions after the release
+- [x] Configure npm trusted publishing with GitHub Actions after the release
   repository and package visibility are final.
 - [x] If public provenance is desired, make both the repository and package
   public; npm does not generate provenance for private repositories.
-- [ ] Configure trusted publishing before the stable `0.1.0` release. The
-  reviewed prerelease may be published locally with 2FA after explicit owner
-  confirmation.
+- [x] Configure trusted publishing before the stable `0.1.0` release.
 
 ## Prerelease history
 
@@ -86,7 +84,7 @@ publishing.
   channel.
 - [x] Run `npm run test:release` against the exact `0.1.0` tarball.
 - [x] Make the repository public so the stable package can carry provenance.
-- [ ] Connect `publish.yml` as the npm trusted publisher for the package.
+- [x] Connect `publish.yml` as the npm trusted publisher for the package.
 - [x] Confirm the release commit passes every required GitHub Actions check.
 - [ ] Tag the reviewed release commit as `v0.1.0`.
 - [ ] Publish `@rickybharti/mintform@0.1.0` publicly and confirm npm's `latest`
