@@ -9,7 +9,7 @@
 | `npm test` | Geometry/material property tests, appearance markup, and scoped frame-write invariants. |
 | `npm run test:package` | Expected npm tarball files only. |
 | `npm run test:size` | Gzip delivery budgets for ESM, CommonJS, and CSS output. |
-| `npm run test:consumer` | One tarball installed and built with npm, pnpm, Yarn PnP, and Bun under React 18.2 and 19. |
+| `npm run test:consumer` | One tarball installed and built with npm, pnpm, Yarn PnP, and Bun under React 18.2 and 19, then in a typed Next.js App and Pages Router production build. |
 | `npm run test:types` | Published ESM/CJS declarations and package exports with publint and attw. |
 | `npm run test:release` | The complete package release gate. |
 
@@ -38,6 +38,15 @@ runtime. Yarn runs with Plug'n'Play and no `node_modules`; Bun uses its isolated
 linker so undeclared or phantom dependencies fail visibly. The fixture includes
 every public prop group, custom back-mark render context, wrapper and button
 attributes, plus all expert rendering groups.
+
+The Next.js fixture installs that same immutable tarball into a strict
+TypeScript project covering both routers. Its App Router Server Component
+directly imports Mintform with serializable props, while a separate
+`"use client"` component supplies a custom SVG render function. A Pages Router
+route imports Mintform normally. `next build` must statically prerender every
+token, emit a client bundle, and carry the package stylesheet into the exported
+CSS. The package inspection also fails if either JavaScript entry loses its
+`"use client"` directive or if Next.js appears as a runtime/peer dependency.
 
 `npm run test:types` excludes only `./styles.css` from attw because it is a
 browser bundler asset, not a Node-loadable JavaScript entry point. Its paired

@@ -4,6 +4,14 @@ All notable changes to Mintform will be documented in this file.
 
 ## Unreleased
 
+## 0.1.1 — Next.js compatibility
+
+- Added a preserved `"use client"` package boundary for direct use from Next.js
+  App Router Server Components.
+- Added a packed-tarball Next.js production fixture covering strict TypeScript,
+  the App and Pages Routers, server prerendering, custom SVG content inside a
+  Client Component, the client bundle, and the external stylesheet export.
+
 ## 0.1.0 — first stable release
 
 - Added `appearance="clean"` as a plain-cap treatment on the existing sealed

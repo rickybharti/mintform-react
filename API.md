@@ -93,6 +93,14 @@ collide.
 />
 ```
 
+### Custom marks in Next.js
+
+The package entry is a Next.js Client Component boundary. Serializable values
+such as presets, colours, geometry, and motion settings may be passed directly
+from an App Router Server Component. A custom `render` function, `onSpin`, or
+event handler must be created inside a file with `"use client"` because React
+cannot serialize functions across the server-to-client boundary.
+
 ## Presentation, input, and motion
 
 | Prop | Contract |

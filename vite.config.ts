@@ -31,6 +31,12 @@ export default defineConfig(({ mode }) => ({
               "react/jsx-runtime",
               "react/jsx-dev-runtime",
             ],
+            output: {
+              // Next.js asks component-library authors to preserve this entry
+              // boundary. Rollup otherwise removes module directives while
+              // bundling, so the published artifact owns the guarantee.
+              banner: '"use client";',
+            },
           },
         },
 }));

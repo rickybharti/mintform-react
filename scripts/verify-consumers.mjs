@@ -7,6 +7,7 @@ import { join, resolve } from "node:path";
 
 const packageDirectory = resolve(import.meta.dirname, "..");
 const verifier = join(import.meta.dirname, "verify-consumer.mjs");
+const nextVerifier = join(import.meta.dirname, "verify-next-consumer.mjs");
 const temporaryDirectory = await mkdtemp(join(tmpdir(), "mintform-consumers-"));
 const packageOutputDirectory = join(temporaryDirectory, "package");
 const cacheDirectory = join(temporaryDirectory, "npm-cache");
@@ -59,8 +60,22 @@ try {
     }
   }
 
+  execFileSync(process.execPath, [nextVerifier, tarball], {
+    cwd: packageDirectory,
+    env: {
+      ...process.env,
+      NEXT_TELEMETRY_DISABLED: "1",
+    },
+    stdio: "inherit",
+  });
+  assert.equal(
+    await sha512(tarball),
+    originalDigest,
+    "The Next.js consumer must not mutate the shared package tarball.",
+  );
+
   console.log(
-    `Verified one immutable ${packed.name}@${packed.version} tarball across npm, pnpm, Yarn PnP, and Bun with React 18 and 19.`,
+    `Verified one immutable ${packed.name}@${packed.version} tarball across npm, pnpm, Yarn PnP, and Bun with React 18 and 19, plus Next.js App and Pages Routers.`,
   );
 } finally {
   await rm(temporaryDirectory, { recursive: true, force: true });

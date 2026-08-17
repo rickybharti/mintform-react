@@ -19,6 +19,10 @@ publishing.
 - [x] Every package manager builds React 18.2 and React 19 consumers with
   NodeNext in both ESM and CommonJS modes, then loads both root module formats
   at runtime.
+- [x] That same immutable tarball passes a strict TypeScript Next.js production
+  build across the App and Pages Routers. A Server Component prerenders
+  serializable Mintform props, an explicit Client Component prerenders a custom
+  SVG mark, and the exported CSS contains the package stylesheet.
 - [x] `publint` and `attw` audit the packed Node package boundary in the
   release gate; the browser-only CSS asset is verified through the Vite
   consumer instead.

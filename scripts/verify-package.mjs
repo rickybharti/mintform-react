@@ -25,6 +25,14 @@ try {
   );
   const packed = JSON.parse(output)[0];
   const packedFiles = new Set(packed.files.map((file) => file.path));
+  const esmArtifact = await readFile(
+    join(packageDirectory, "dist/index.js"),
+    "utf8",
+  );
+  const cjsArtifact = await readFile(
+    join(packageDirectory, "dist/index.cjs"),
+    "utf8",
+  );
 
   assert.equal(
     manifest.private,
@@ -33,6 +41,16 @@ try {
   );
   assert.equal(manifest.name, "@rickybharti/mintform");
   assert.equal(manifest.publishConfig.access, "public");
+  assert.equal(
+    manifest.dependencies?.next,
+    undefined,
+    "Next.js is a consumer test target, not a Mintform runtime dependency.",
+  );
+  assert.equal(
+    manifest.peerDependencies?.next,
+    undefined,
+    "Next.js must not be required by React or Vite consumers.",
+  );
   assert.equal(
     manifest.publishConfig.tag,
     manifest.version.includes("-") ? "next" : undefined,
@@ -57,6 +75,16 @@ try {
   assert.equal(
     manifest.exports["./styles.css"].require.default,
     "./dist/mintform.css",
+  );
+  assert.match(
+    esmArtifact,
+    /^"use client";/,
+    'The ESM entry must preserve the Next.js "use client" boundary.',
+  );
+  assert.match(
+    cjsArtifact,
+    /^"use client";/,
+    "The CommonJS entry must preserve the client boundary consistently.",
   );
 
   for (const requiredFile of [

@@ -37,13 +37,98 @@ export function Token() {
 }
 ```
 
+TypeScript declarations ship with the package, including the complete prop,
+custom-mark, and imperative-handle contracts. No separate `@types` package is
+needed.
+
+### Next.js App Router
+
+Mintform's published entry declares its client boundary, so a Server Component
+can directly render it with serializable props. Import the external stylesheet
+from the App Router, for example in the root layout:
+
+```tsx
+// app/layout.tsx
+import "@rickybharti/mintform/styles.css";
+import type { ReactNode } from "react";
+
+export default function RootLayout({ children }: { children: ReactNode }) {
+  return (
+    <html lang="en">
+      <body>{children}</body>
+    </html>
+  );
+}
+```
+
+```tsx
+// app/page.tsx — a Server Component
+import { Mintform, type MintformProps } from "@rickybharti/mintform";
+
+const token = {
+  preset: "sgho",
+  material: { color: "#31df4d" },
+  lowerField: { color: "#9184ff", reach: 0.52 },
+} satisfies MintformProps;
+
+export default function Page() {
+  return <Mintform {...token} />;
+}
+```
+
+For the Pages Router, import the same stylesheet once from `pages/_app.tsx`,
+then render `Mintform` like any other React component:
+
+```tsx
+// pages/_app.tsx
+import "@rickybharti/mintform/styles.css";
+import type { AppProps } from "next/app";
+
+export default function App({ Component, pageProps }: AppProps) {
+  return <Component {...pageProps} />;
+}
+```
+
+Both Next.js routers are covered by the packed-package production test.
+
+Callbacks, custom mark render functions, and event handlers are not
+serializable across a React Server Component boundary. Define those inside an
+explicit Client Component instead:
+
+```tsx
+// app/custom-token.tsx
+"use client";
+
+import { Mintform } from "@rickybharti/mintform";
+
+export function CustomToken() {
+  return (
+    <Mintform
+      mark={{
+        kind: "custom",
+        render: ({ id }) => (
+          <svg viewBox="0 0 160 160" aria-hidden="true">
+            <path id={id} d="M40 80h80" stroke="currentColor" strokeWidth="14" />
+          </svg>
+        ),
+      }}
+    />
+  );
+}
+```
+
 ## Platform support
 
 Mintform is a **React component for the browser**. It supports React 18.2+ and
-React 19 as peer dependencies. Rendering and motion use DOM, CSS 3D transforms,
-`color-mix()`, blend modes, Pointer Events, `requestAnimationFrame`, and
-`IntersectionObserver`; it is not a server-rendered, React Native, Vue, Svelte,
-or framework-agnostic component today.
+React 19 as peer dependencies, works in Vite, and is production-tested in the
+Next.js App and Pages Routers. React and Next.js may prerender its initial
+markup on the server; motion and interaction attach after hydration in the
+browser. It is not a Server Component, React Native, Vue, Svelte, or
+framework-agnostic component.
+
+Next.js is not a Mintform dependency or peer dependency. The release gate
+installs the packed package into a separate typed Next.js application, while
+ordinary React and Vite consumers receive no Next.js code.
 
 The component does not add runtime dependencies. React owns rendering; the
 browser compositor handles transform animation. Mintform schedules JavaScript
@@ -171,7 +256,10 @@ ES module, CommonJS module, and stylesheet. `npm run test:consumer` packs once,
 then installs that exact immutable tarball with npm, pnpm, Yarn 4 Plug'n'Play,
 and Bun's isolated linker. Every manager builds fresh React 18.2 and React 19
 Vite consumers, type-checks NodeNext ESM/CommonJS imports, imports the CSS
-subpath, and loads both JavaScript module formats. `npm run test:types`
+subpath, and loads both JavaScript module formats. The same tarball is then
+installed in a typed Next.js application that performs a production static
+build across the App and Pages Routers, server-prerenders the examples, emits
+the client bundle, and includes the external stylesheet. `npm run test:types`
 additionally audits the packed ESM/CJS declaration boundary with publint and
 attw. CI runs the package and type gate on Node 20 and 22, plus the complete
 package-manager matrix on Node 22.
