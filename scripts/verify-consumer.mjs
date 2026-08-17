@@ -98,7 +98,7 @@ function installAndBuild() {
       );
       break;
     case "yarn":
-      run("corepack", ["yarn", "install"]);
+      run("corepack", ["yarn", "install", "--no-immutable"]);
       run("corepack", ["yarn", "run", "build"]);
       assert.equal(
         existsSync(join(consumerDirectory, "node_modules")),
