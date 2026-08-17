@@ -86,8 +86,8 @@ publishing.
 - [x] Make the repository public so the stable package can carry provenance.
 - [x] Connect `publish.yml` as the npm trusted publisher for the package.
 - [x] Confirm the release commit passes every required GitHub Actions check.
-- [ ] Tag the reviewed release commit as `v0.1.0`.
-- [ ] Publish `@rickybharti/mintform@0.1.0` publicly and confirm npm's `latest`
+- [x] Tag the reviewed release commit as `v0.1.0`.
+- [x] Publish `@rickybharti/mintform@0.1.0` publicly and confirm npm's `latest`
   tag resolves to it.
 
 ## Why these checks exist
