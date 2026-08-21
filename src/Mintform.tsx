@@ -380,33 +380,32 @@ function Mark({
     mark.kind === "custom"
       ? clamp(finite(mark.clipRadius, 61.5), 20, 78)
       : 61.5;
-  const markStyle = {
-    "--mintform-logo-transform": scale === 1 ? "none" : `scale(${scale})`,
+  const clipStyle = {
     "--mintform-logo-clip-radius": `${(clipRadius * size) / 160}px`,
   } as CSSVars;
+  const contentStyle = {
+    "--mintform-logo-transform": scale === 1 ? "none" : `scale(${scale})`,
+  } as CSSVars;
 
-  if (mark.kind === "preset") {
-    return (
-      <svg
-        className="mintform__logo"
-        viewBox="0 0 160 160"
-        fill="none"
-        aria-hidden="true"
-        style={markStyle}
-      >
+  const content =
+    mark.kind === "preset" ? (
+      <svg viewBox="0 0 160 160" fill="none" aria-hidden="true">
         {mark.name === "aave" ? <AaveMark /> : <GhoMark />}
       </svg>
+    ) : typeof mark.render === "function" ? (
+      mark.render({
+        side,
+        id: `mintform-mark-${markInstanceId}`,
+      })
+    ) : (
+      mark.render
     );
-  }
 
   return (
-    <div className="mintform__logo" aria-hidden="true" style={markStyle}>
-      {typeof mark.render === "function"
-        ? mark.render({
-            side,
-            id: `mintform-mark-${markInstanceId}`,
-          })
-        : mark.render}
+    <div className="mintform__logo" aria-hidden="true" style={clipStyle}>
+      <div className="mintform__logo-content" style={contentStyle}>
+        {content}
+      </div>
     </div>
   );
 }

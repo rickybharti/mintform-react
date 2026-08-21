@@ -59,4 +59,27 @@ describe("Mintform appearance rendering", () => {
     expect(count(largeMarkup, "mintform__edge-slice")).toBe(240);
     expect(count(explicitMarkup, "mintform__edge-slice")).toBe(64);
   });
+
+  it("scales mark artwork inside a separate fixed clipping boundary", () => {
+    const markup = renderToStaticMarkup(
+      <Mintform
+        interactive={false}
+        mark={{
+          kind: "custom",
+          scale: 0.5,
+          render: <svg viewBox="0 0 160 160" aria-hidden="true" />,
+        }}
+      />,
+    );
+    const clipLayers = markup.match(/<div class="mintform__logo"[^>]*>/g) ?? [];
+    const contentLayers =
+      markup.match(/<div class="mintform__logo-content"[^>]*>/g) ?? [];
+
+    expect(clipLayers).toHaveLength(2);
+    expect(contentLayers).toHaveLength(2);
+    expect(clipLayers.every((tag) => tag.includes("--mintform-logo-clip-radius"))).toBe(true);
+    expect(clipLayers.every((tag) => !tag.includes("--mintform-logo-transform"))).toBe(true);
+    expect(contentLayers.every((tag) => tag.includes("--mintform-logo-transform:scale(0.5)"))).toBe(true);
+    expect(contentLayers.every((tag) => !tag.includes("--mintform-logo-clip-radius"))).toBe(true);
+  });
 });

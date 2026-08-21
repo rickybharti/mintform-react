@@ -4,6 +4,11 @@ All notable changes to Mintform will be documented in this file.
 
 ## Unreleased
 
+## 0.1.2 — custom mark scaling
+
+- Fixed custom-mark scaling so uploaded or rendered SVG artwork scales inside
+  a stable clipping boundary instead of shrinking an already-cropped result.
+
 ## 0.1.1 — Next.js compatibility
 
 - Added a preserved `"use client"` package boundary for direct use from Next.js

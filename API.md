@@ -73,7 +73,9 @@ side independently:
 `scale` clamps to 0.5–1.25. Custom `clipRadius` clamps to 20–78. `render` may
 be React/SVG content or a function that receives `{ side, id }`; use its unique
 `id` prefix for SVG paint, mask, and clip-path IDs so front and back marks never
-collide.
+collide. The clip radius defines a fixed safety boundary on the coin while
+`scale` resizes the complete mark inside it, so reducing the scale reveals
+rather than permanently cropping the mark's outer artwork.
 
 ## Custom marks
 

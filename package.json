@@ -1,7 +1,7 @@
 {
   "name": "@rickybharti/mintform",
   "private": false,
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "A tactile, customizable CSS 3D token component for React.",
   "keywords": [
     "react",

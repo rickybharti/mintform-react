@@ -156,11 +156,18 @@
       calc(var(--mintform-face-shade, 0) * 25%)
   );
   clip-path: circle(var(--mintform-logo-clip-radius) at center);
+}
+
+.mintform__logo-content {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   transform: var(--mintform-logo-transform, none);
   transform-origin: center;
 }
 
-.mintform__logo > * {
+.mintform__logo-content > * {
   display: block;
   width: 100%;
   height: 100%;
